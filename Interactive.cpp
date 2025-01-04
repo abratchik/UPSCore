@@ -32,6 +32,19 @@ RegulateStatus Interactive::regulate() {
     else 
         bitClear(_status, BATTERY_DEAD_FLAG );
 
+    if(_battery_level < INTERACTIVE_BATTERY_LOW ) {
+        self_test = false;
+        toggleSelfTest(false);
+        bitSet(_status, BATTERY_LOW);
+    }
+    else {
+        bitClear(_status, BATTERY_LOW);
+    }
+
+    if( bitRead(_status, SHUTDOWN_ACTIVE) ) {
+        return REGULATE_STATUS_SHUTDOWN;
+    }
+
     float ac_out = _ac_out->reading();
 
     // If output is disconnected but the load is present then it may 
@@ -62,22 +75,13 @@ RegulateStatus Interactive::regulate() {
     // if the state is overload or output voltage is wrong, no regulation, need cold reset.
     if(bitRead( _status, OVERLOAD_FLAG) || bitRead( _status, UPS_FAULT ) || bitRead( _status, BATTERY_DEAD_FLAG ) ) 
         return REGULATE_STATUS_ERROR;
-
-    if(_battery_level < INTERACTIVE_BATTERY_LOW ) {
-        self_test = false;
-        stopSelfTest();
-        bitSet(_status, BATTERY_LOW);
-    }
-    else {
-        bitClear(_status, BATTERY_LOW);
-    }
     
     // input voltage is far off the regulation limits (X2)
     bool utility_fail = abs_deviation > 2 * nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : -1 );
 
     if(utility_fail){
         self_test = false;
-        _last_fault_input_voltage = vac_input;
+        if(!_batteryMode) _last_fault_input_voltage = vac_input;
         bitSet(_status, UTILITY_FAIL);
     }
 
@@ -168,11 +172,16 @@ void Interactive::adjustOutput(RegulateMode mode) {
     }
 }
 
-void Interactive::startSelfTest() {
-    bitSet(_status, SELF_TEST);
+void Interactive::toggleSelfTest(bool active) {
+    if(active)
+        bitSet(_status, SELF_TEST);
+    else
+        bitClear(_status, SELF_TEST);
 }
 
-void Interactive::stopSelfTest() {
-    bitClear(_status, SELF_TEST);
+void Interactive::toggleOutput(bool shutdown) {
+    if(shutdown)
+        bitSet(_status, SHUTDOWN_ACTIVE);
+    else
+        bitClear(_status, SHUTDOWN_ACTIVE);
 }
-

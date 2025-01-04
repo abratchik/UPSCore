@@ -45,6 +45,12 @@ class Voltronic {
 
         CommandStatus executeCommandBuffer();
 
+        // get the minutes before shutdown output
+        float getShutdownMin() { return _shutdown_min; };
+
+        // get the minutes till restore output
+        int getRestoreMin() { return _restore_min; };
+
         void setProtocol( char protocol ) { _protocol = protocol; };
         char getProtocol() { return _protocol; };
 
@@ -111,7 +117,16 @@ class Voltronic {
         void writeInt( int val, int length );
         void writeBin( uint8_t val );
 
+        // minutes till restore output
+        int _restore_min;
+
+        // minutes till disconnect output
+        float _shutdown_min;
+
         int _ptr = 0;
+
+        bool parseShutdownRestoreTimeouts();
+
 
 };
 

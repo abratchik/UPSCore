@@ -7,6 +7,7 @@ void SimpleTimer::tick() {
         
         if(_active && _on_finish)
             _on_finish();
+        _active = false;
         return;
     }
 
@@ -15,7 +16,7 @@ void SimpleTimer::tick() {
 
 
         // if the timer is active and duration reached, set _active to false  
-        if(_active && (_counter >= _duration) ) {
+        if( _counter >= _duration ) {
             // _dbg->print(_id);
             // _dbg->println(" duration reached");
             _active = false;

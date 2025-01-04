@@ -109,7 +109,8 @@ CommandStatus Voltronic::executeCommandBuffer() {
                         break;
 
                     case 'S':
-                        command_status = COMMAND_SHUTDOWN;
+                        if(parseShutdownRestoreTimeouts())
+                            command_status = COMMAND_SHUTDOWN;
                         break;
 
                     case 'C':
@@ -195,3 +196,20 @@ void Voltronic::writeBin( uint8_t val) {
     }
 }
 
+bool Voltronic::parseShutdownRestoreTimeouts() {
+    if(_buf[3] != 'R') return false;
+    
+    char * c_shutdown_min = malloc(2);
+    char * c_restore_min = malloc(4);
+
+    memcpy(c_shutdown_min, _buf + 1,2);
+    memcpy(c_restore_min, _buf + 4,4);
+
+    _shutdown_min = atof(c_shutdown_min);
+    _restore_min = atoi(c_restore_min);
+
+    free(c_shutdown_min);
+    free(c_restore_min);
+
+    return true;
+}

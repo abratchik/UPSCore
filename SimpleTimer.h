@@ -36,7 +36,7 @@ class SimpleTimer {
             _duration = duration;
             start();
         };
-        
+
         void stop() { 
             _dbg->print(_id);
             _dbg->println(" stopped");
@@ -54,6 +54,9 @@ class SimpleTimer {
 
         void setDuration( unsigned long duration ) { _duration = duration; };
         unsigned long getDuration() { return _duration; };
+
+        void setOnStart( callback on_start = nullptr ) { _on_start = on_start; };
+        void setOnFinish( callback on_finish = nullptr ) { _on_finish = on_finish; };
 
         void tick(); 
 

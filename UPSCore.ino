@@ -48,6 +48,10 @@ SimpleTimer* display_refresh_timer = nullptr;
 
 Voltronic serial_protocol( &Serial, 'V' );
 
+void output_power_on();
+void output_power_off();
+SimpleTimer* output_power_timer =  nullptr;
+
 void setup() {
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
 
@@ -58,6 +62,7 @@ void setup() {
   beeper_timer = timer_manager.create(0,0,false,beep_on, beep_off);
   display_refresh_timer = timer_manager.create(DISPLAY_BLINK_FREQ, 0, false, refresh_display);
   self_test = timer_manager.create(0, 10 * TIMER_ONE_SEC, false, start_self_test, stop_self_test);
+  output_power_timer = timer_manager.create();
 
   cli(); // stop interrupts
 
@@ -117,7 +122,7 @@ void loop() {
           beeper_timer->start( 8 * TIMER_ONE_SEC, TIMER_ONE_SEC );
           lineups.startInverter();
         }
-        lineups.connectOutput();
+        if( !lineups.isOutputConnected() ) lineups.connectOutput();
 
         // enable beep every second if the battery is low
         if(beeper_timer->isEnabled() && 
@@ -141,7 +146,7 @@ void loop() {
         lineups.connectInput();
 
         // connect the load
-        lineups.connectOutput();
+        if( !lineups.isOutputConnected() ) lineups.connectOutput();
 
         // Serial.print(c_bat.reading());Serial.print(",");
         // Serial.println(charger.get_mode());
@@ -170,14 +175,31 @@ void loop() {
         break;
 
       case REGULATE_STATUS_ERROR:
+        if(lineups.isOutputConnected()) {
+          lineups.disconnectOutput();
+          beeper_timer->stop();
+          delayed_charge->stop();
+          self_test->stop();
+          charger.stop();
 
-        lineups.disconnectOutput();
-        beeper_timer->stop();
-        delayed_charge->stop();
-        self_test->stop();
-        charger.stop();
+          beep_on();
+        }
 
-        beep_on();
+        break;
+      
+      case REGULATE_STATUS_SHUTDOWN:
+        if(lineups.isOutputConnected()) {
+          lineups.disconnectOutput();
+          delayed_charge->stop();
+          beeper_timer->stop();
+          self_test->stop();
+          charger.stop();
+
+          if( serial_protocol.getRestoreMin() > 0.0 ) {
+            output_power_timer->setOnFinish( output_power_on );
+            output_power_timer->start( 0, serial_protocol.getRestoreMin() * 60 * TIMER_ONE_SEC );
+          }
+        }
 
         break;
 
@@ -208,8 +230,30 @@ void loop() {
           }
           break;
         case COMMAND_SHUTDOWN:
+          if( serial_protocol.getShutdownMin() == 0.0F ) {
+            output_power_off();
+          }
+          else if(! output_power_timer->isEnabled() && !output_power_timer->isActive() ) {
+            output_power_timer->setOnFinish( output_power_off );
+            output_power_timer->start( 0, (int) ( serial_protocol.getShutdownMin() * 60 * TIMER_ONE_SEC ) );
+          }
           break;
         case COMMAND_SHUTDOWN_CANCEL:
+          if(output_power_timer->isEnabled()) {
+            if(lineups.isShutdown()) {  
+              output_power_timer->setOnFinish( output_power_on );
+              output_power_timer->start( 0, 10 * TIMER_ONE_SEC );
+            }
+            else {
+              output_power_timer->setOnFinish(nullptr);
+              output_power_timer->stop();
+            }
+
+          }
+          else if(lineups.isShutdown()) {
+            output_power_on();
+          }
+
           break;
         default:
           break;
@@ -276,9 +320,20 @@ void print_readings(RegulateStatus status) {
 }
 
 void start_self_test() {
-  lineups.startSelfTest();
+  lineups.toggleSelfTest(true);
 }
 
 void stop_self_test() {
-  lineups.stopSelfTest();
+  lineups.toggleSelfTest(false);
 }
+
+void output_power_off() {
+  Serial.println("Output power off");
+  lineups.toggleOutput(true);
+}
+
+void output_power_on() {
+  Serial.println("Output power on");
+  lineups.toggleOutput(false);
+}
+

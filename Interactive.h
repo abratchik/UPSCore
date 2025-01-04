@@ -36,7 +36,8 @@ enum RegulateStatus {
     REGULATE_STATUS_NONE,
     REGULATE_STATUS_SUCCESS,
     REGULATE_STATUS_FAIL,
-    REGULATE_STATUS_ERROR
+    REGULATE_STATUS_ERROR,
+    REGULATE_STATUS_SHUTDOWN
 };
 
 
@@ -57,11 +58,15 @@ class Interactive {
 
         bool isBatteryMode() { return _batteryMode; };
 
+        bool isShutdown() { return bitRead( _status, SHUTDOWN_ACTIVE ); };
+
+        bool isOutputConnected() { return bitRead(_status, OUTPUT_RELAY_FLAG ); };
+
         uint16_t getStatus() { return _status; };
 
         float getLastFaultInputVoltage() { return _last_fault_input_voltage; };
 
-        void toggleBeeper() { _status ^= (uint16_t)1 << BEEPER_IS_ACTIVE;}
+        void toggleBeeper() { _status ^= (uint16_t)1 << BEEPER_IS_ACTIVE; };
 
         float getBatteryLevel() { return _battery_level; };
 
@@ -79,9 +84,9 @@ class Interactive {
         // disconnect from the mains 
         void disconnectInput();
 
-        void startSelfTest();
+        void toggleSelfTest(bool active);
 
-        void stopSelfTest();
+        void toggleOutput(bool shutdown);
 
         void adjustOutput(RegulateMode mode = REGULATE_NONE);
     
