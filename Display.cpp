@@ -1,8 +1,8 @@
 #include "Display.h"
 
 Display::Display()
-  : TM1640(DISPLAY_DA_OUT, DISPLAY_CLK_OUT, DISPLAY_MAX_POS) {    
-    ;  
+  : TM1640(DISPLAY_DA_OUT, DISPLAY_CLK_OUT, DISPLAY_MAX_POS) {  
+    setupDisplay(true, DISPLAY_MAX_BRIGHTNESS);  
 }
 
 void Display::setInputReading(int reading, ReadingUnit mode ) {
@@ -93,4 +93,15 @@ void Display::show(bool blink_state) {
     }
     stop();
 
+}
+
+void Display::setupDisplay(boolean active, byte intensity) {
+    _active = active;
+    _brightness = intensity;
+    TM1640::setupDisplay(_active, intensity);
+
+}
+
+void Display::toggle() {
+    setupDisplay(!_active, _brightness);
 }

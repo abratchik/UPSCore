@@ -105,6 +105,12 @@ class Display : public TM1640 {
         void setFlag(DisplayFlag flag);
 
         void setBlink(DisplayFlag flag);
+
+        virtual void setupDisplay(boolean active, byte intensity) override;
+
+        bool isActive() { return _active; };
+
+        void toggle();
     
     protected:
 
@@ -122,6 +128,9 @@ class Display : public TM1640 {
 
         uint8_t board[8];   // array to store display data for each group
         uint8_t blink[8];    // array to store blink mask for each group
+
+        bool _active;
+        int _brightness;
        
 };
 

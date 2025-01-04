@@ -2,7 +2,7 @@
 #define Voltronic_h
 
 #define VOLTRONIC_RELEASE 2.0
-#define VOLTRONIC_DEFAULT_PROTOCOL  'P'
+#define VOLTRONIC_DEFAULT_PROTOCOL  'V'
 #define VOLTRONIC_DEFAULT_BAUD_RATE 2400
 
 #define COMMAND_BUFFER_SIZE 32
@@ -29,7 +29,9 @@ enum CommandStatus {
     COMMAND_BEEPER_MUTE,
     COMMAND_SELF_TEST,
     COMMAND_SHUTDOWN,
-    COMMAND_SHUTDOWN_CANCEL
+    COMMAND_SHUTDOWN_CANCEL,
+    COMMAND_SET_BRIGHTNESS,
+    COMMAND_TOGGLE_DISPLAY
 };
 
 
@@ -65,6 +67,15 @@ class Voltronic {
 
         void setLoadLevel( int load_lvl ) { _load_lvl = load_lvl; };
         int getLoadLevel() { return _load_lvl; };
+
+        void setBatteryLevel( int battery_lvl ) { _battery_lvl = battery_lvl; };
+        int getBatteryLevel() { return _battery_lvl; };
+
+        void setRemainingMin(int remaining_min ) { _remaining_min = remaining_min;};
+        int getRemainingMin() { return _remaining_min; };
+
+        void setBrightnessLevel( int brightness_lvl ) { _brightness_lvl = brightness_lvl; };
+        int getBrightnessLevel() { return _brightness_lvl; };
 
         void setOutputFreq( float out_f ) { _out_f = out_f; };
         float getOututFreq() { return _out_f; };
@@ -123,9 +134,20 @@ class Voltronic {
         // minutes till disconnect output
         float _shutdown_min;
 
+        // remaining battery level in %
+        int _battery_lvl; 
+
+        // remaining time on battery in minutes
+        int _remaining_min;
+
+        int _brightness_lvl = 9;
+
         int _ptr = 0;
 
         bool parseShutdownRestoreTimeouts();
+
+        void printfixed(const char* str, int len);
+        void printRatedInfo();
 
 
 };

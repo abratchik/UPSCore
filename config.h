@@ -27,6 +27,7 @@
 #define INTERACTIVE_MAX_V_BAT_CELL 13.8F
 #define INTERACTIVE_MIN_V_BAT_CELL 10.5F
 #define INTERACTIVE_NUM_CELLS  2
+#define INTERACTIVE_NUM_BATTERY_PACKS  1
 #define INTERACTIVE_BATTERY_AH 9.0F                 // battery cell capacity in AH
 #define INTERACTIVE_BATTERY_LOW 0.1F
 #define INTERACTIVE_DEFAULT_FREQ 50.0F
@@ -36,13 +37,24 @@
 #define DISPLAY_DA_OUT   11
 #define DISPLAY_CLK_OUT  13
 #define DISPLAY_BLINK_FREQ      16
+#define DISPLAY_MAX_BRIGHTNESS 4
 
 #define SERIAL_MONITOR_BAUD_RATE 9600
-#define SERIAL_MONITOR_UPS_INFO "ExeGate ServerRM UNL-2000.LCD.AVR.2SH.3C13.USB.2U"
+
+#define MANUFACTURER "ExeGate"
+#define PART_NUMBER "EX293851RUS"
+#define PART_MODEL "ExeGate ServerRM UNL-2000.LCD.AVR.2SH.3C13.USB.2U"
+#define RATED_VA 2000
+#define ACTUAL_VA 1200
+#define FIRMWARE_VERSION "001.00"
 
 // fully drained battery voltage
 const static float INTERACTIVE_MIN_V_BAT = INTERACTIVE_MIN_V_BAT_CELL * INTERACTIVE_NUM_CELLS;    
 // fully charged battery voltage             
-const static float INTERACTIVE_MAX_V_BAT = INTERACTIVE_MAX_V_BAT_CELL * INTERACTIVE_NUM_CELLS;  
+const static float INTERACTIVE_MAX_V_BAT = INTERACTIVE_MAX_V_BAT_CELL * INTERACTIVE_NUM_CELLS; 
+// full battery capacity in AH
+const static float INTERACTIVE_TOTAL_BATTERY_CAP = INTERACTIVE_BATTERY_AH * 
+                                                   INTERACTIVE_NUM_CELLS * 
+                                                   INTERACTIVE_NUM_BATTERY_PACKS;
 
 #endif

@@ -214,6 +214,15 @@ void loop() {
       serial_protocol.setInputFaultVoltage(lineups.getLastFaultInputVoltage());
       serial_protocol.setOutputVoltage(vac_out.reading());
       serial_protocol.setLoadLevel( (int) ac_out.reading() * 100 / INTERACTIVE_MAX_AC_OUT );
+      serial_protocol.setBatteryLevel( (int) lineups.getBatteryLevel() * 100 );
+
+      //TODO: add estimation of remaining time here
+      //if(lineups.isBatteryMode())
+      //  serial_protocol.setRemainingMin(0);
+      // else
+      
+      serial_protocol.setRemainingMin(0);
+
       serial_protocol.setBatteryVoltage(v_bat.reading());
       serial_protocol.setInternalTemp(25.0); //TODO: replace with sensor reading
       serial_protocol.setStatus(lowByte(lineups.getStatus()));
@@ -255,6 +264,15 @@ void loop() {
           }
 
           break;
+
+        case COMMAND_SET_BRIGHTNESS:
+          display.setupDisplay( true, serial_protocol.getBrightnessLevel() );
+          break;
+        
+        case COMMAND_TOGGLE_DISPLAY:
+          display.toggle();
+          break;
+
         default:
           break;
       }
