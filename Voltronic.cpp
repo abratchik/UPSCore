@@ -33,7 +33,7 @@ char Voltronic::process() {
     return '\0';    
 }
 
-CommandStatus Voltronic::executeCommandBuffer() {
+ExecuteCommand Voltronic::executeCommand() {
 
     int command_status = COMMAND_NONE;
 
@@ -70,13 +70,13 @@ CommandStatus Voltronic::executeCommandBuffer() {
                         }
                         else if( _buf[1] == 'M' && _buf[2] == 'D' ) {
                             _stream->write('(');
-                            printfixed(PART_NUMBER, 15);
+                            printFixed(PART_NUMBER, 15);
                             _stream->write(' ');
                             writeInt(RATED_VA, 7);
                             _stream->write(' ');
                             writeFloat( (float)100.0F * ACTUAL_VA / RATED_VA, 3,0);     
                             _stream->write(' ');
-                            printfixed("1/1", 3);
+                            printFixed("1/1", 3);
                             _stream->write(' ');
                             writeFloat( INTERACTIVE_DEFAULT_INPUT_VOLTAGE, 3,0);
                             _stream->write(' ');
@@ -135,26 +135,50 @@ CommandStatus Voltronic::executeCommandBuffer() {
                         break;
                     case 'T':
                         command_status = COMMAND_SELF_TEST;
+                        if(_buf[1] != 'L') {
+                            _selftest_min = max( parseFloat(1,2), MIN_SELFTEST_DURATION );
+                        }
+                        else {
+                            //TODO: deep discharge test
+                            ;
+                        }
+                        
                         break;
                     
                     case 'I':
                         _stream->write('#');
-                        printfixed(MANUFACTURER, 15);
+                        printFixed(MANUFACTURER, 15);
                         _stream->write(' ');
-                        printfixed(PART_NUMBER,10);
+                        printFixed(PART_NUMBER,10);
                         _stream->write(' ');
-                        printfixed(FIRMWARE_VERSION,10);
+                        printFixed(FIRMWARE_VERSION,10);
                         writeEOL();
                         break;
 
                     case 'S':
-                        if(parseShutdownRestoreTimeouts())
+
+                        _shutdown_min = parseFloat(1,2);
+
+                        if(_buf[3] == 'R') 
+                            _restore_min = (int) parseFloat(4,4);
+                        else
+                            _restore_min = 0;
+
+                        if(_shutdown_min > 0)
                             command_status = COMMAND_SHUTDOWN;
+
                         break;
 
                     case 'C':
-                        command_status = COMMAND_SHUTDOWN_CANCEL;
-                        break;
+                        switch(_buf[1]) {
+                            case 'T':
+                                command_status = COMMAND_SELF_TEST_CANCEL;
+                                break;
+                            case 'S':
+                            default:
+                                command_status = COMMAND_SHUTDOWN_CANCEL;
+                                break;
+                        }
 
                     default:
                         _stream->write(_buf);
@@ -172,6 +196,7 @@ CommandStatus Voltronic::executeCommandBuffer() {
         }
     }
 
+    // clear buffer
     _ptr=0;
     memset(_buf, 0x0, COMMAND_BUFFER_SIZE);
 
@@ -222,25 +247,19 @@ void Voltronic::writeBin( uint8_t val) {
     }
 }
 
-bool Voltronic::parseShutdownRestoreTimeouts() {
-    if(_buf[3] != 'R') return false;
 
-    char * c_shutdown_min = malloc(2);
-    char * c_restore_min = malloc(4);
+float Voltronic::parseFloat(int startpos, int len) {
+    char * buf = malloc(len);
 
-    memcpy(c_shutdown_min, _buf + 1,2);
-    memcpy(c_restore_min, _buf + 4,4);
+    memcpy(buf, _buf + startpos, len);
+    float result  = atof(buf);
 
-    _shutdown_min = atof(c_shutdown_min);
-    _restore_min = atoi(c_restore_min);
+    free(buf);
 
-    free(c_shutdown_min);
-    free(c_restore_min);
-
-    return true;
+    return result;
 }
 
-void Voltronic::printfixed(const char* str, int len) {
+void Voltronic::printFixed(const char* str, int len) {
     int ptr=0;
     while(str[ptr] != '\0' && ptr < len) {
         _stream->write(str[ptr]);

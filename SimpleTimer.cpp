@@ -23,7 +23,7 @@ void SimpleTimer::tick() {
             if(_on_finish) 
                 _on_finish();
             
-            _enabled = (_period > 0);
+            if( _period == 0 ) stop();
         }
     }
     else {

@@ -7,7 +7,7 @@
 #include "Sensor.h"
 #include "Charger.h"
 
-
+// fully charged minus fully drained battery voltage 
 const static float INTERACTIVE_V_BAT_DELTA = INTERACTIVE_MAX_V_BAT - INTERACTIVE_MIN_V_BAT;
 
 enum InteractiveStatusFlags {
@@ -16,14 +16,14 @@ enum InteractiveStatusFlags {
     SELF_TEST,                  // UPS is in self-test state
     LINE_INTERACTIVE,           // 1 if line interactive else on-line 
     UPS_FAULT,                  // UPS fault (wrong output)
-    REGULATE_FLAG,              // boost or back mode is active
+    REGULATED,                  // boost or back mode is active
     BATTERY_LOW,
     UTILITY_FAIL,               // input voltage is not within the limits
-    BATTERY_DEAD_FLAG,          // Battery dead flag
-    UNUSUAL_FLAG,               // 
-    INPUT_RELAY_FLAG ,          // Input relay state
-    OUTPUT_RELAY_FLAG,          // Output relay state
-    OVERLOAD_FLAG               // UPS is in the overload protection mode, restart required
+    BATTERY_DEAD,               // Battery dead flag
+    UNUSUAL_STATE,              // 
+    INPUT_CONNECTED ,           // Input relay state
+    OUTPUT_CONNECTED,           // Output relay state
+    OVERLOAD                    // UPS is in the overload protection mode, restart required
 };
 
 enum RegulateMode {
@@ -58,9 +58,8 @@ class Interactive {
 
         bool isBatteryMode() { return _batteryMode; };
 
-        bool isShutdown() { return bitRead( _status, SHUTDOWN_ACTIVE ); };
-
-        bool isOutputConnected() { return bitRead(_status, OUTPUT_RELAY_FLAG ); };
+        void setShutdownMode(bool mode) {_shutdownMode = mode; };
+        void setSelfTestMode(bool mode) {_selfTestMode = mode; };
 
         uint16_t getStatus() { return _status; };
 
@@ -70,25 +69,19 @@ class Interactive {
 
         float getBatteryLevel() { return _battery_level; };
 
-        void startInverter();
+        void toggleInverter(bool mode);
 
-        void stopInverter();
+        void toggleOutput(bool mode);
 
-        void connectOutput();
-
-        void disconnectOutput();
-
-        // connect to the mains
-        void connectInput();
-
-        // disconnect from the mains 
-        void disconnectInput();
-
-        void toggleSelfTest(bool active);
-
-        void toggleOutput(bool shutdown);
+        // connect or disconnect the mains
+        void toggleInput(bool mode);
 
         void adjustOutput(RegulateMode mode = REGULATE_NONE);
+
+        // write status flag. ATTENTION: this function should not be called from the timers
+        void writeStatus(uint16_t nbit, bool value);
+
+        bool readStatus(int nbit) { return bitRead(_status, nbit); };
     
     private:
         Sensor *_vac_in, *_vac_out, *_ac_out, *_v_bat;
@@ -104,6 +97,9 @@ class Interactive {
         uint16_t _status = 0;
 
         bool _batteryMode = false;
+
+        bool _shutdownMode = false;
+        bool _selfTestMode = false;
 
         float _battery_level; 
 

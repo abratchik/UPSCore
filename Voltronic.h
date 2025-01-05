@@ -13,6 +13,8 @@
 
 #include "config.h"
 
+static const float MIN_SELFTEST_DURATION = 0.2F;
+
 enum StatusBit {
     STATUS_BEEPER_ACTIVE,
     STATUS_SHUTDOWN_ACTIVE,
@@ -24,10 +26,11 @@ enum StatusBit {
     STATUS_UTILITY_FAIL 
 };
 
-enum CommandStatus {
+enum ExecuteCommand {
     COMMAND_NONE,
     COMMAND_BEEPER_MUTE,
     COMMAND_SELF_TEST,
+    COMMAND_SELF_TEST_CANCEL,
     COMMAND_SHUTDOWN,
     COMMAND_SHUTDOWN_CANCEL,
     COMMAND_SET_BRIGHTNESS,
@@ -45,13 +48,15 @@ class Voltronic {
         // process input/output over the Serial interface
         char process();
 
-        CommandStatus executeCommandBuffer();
+        ExecuteCommand executeCommand();
 
         // get the minutes before shutdown output
         float getShutdownMin() { return _shutdown_min; };
 
         // get the minutes till restore output
         int getRestoreMin() { return _restore_min; };
+
+        float getSelftestMin() { return _selftest_min; };
 
         void setProtocol( char protocol ) { _protocol = protocol; };
         char getProtocol() { return _protocol; };
@@ -123,11 +128,6 @@ class Voltronic {
 
         char _protocol = VOLTRONIC_DEFAULT_PROTOCOL;
 
-        void writeEOL();
-        void writeFloat( float val , int length, int dec );
-        void writeInt( int val, int length );
-        void writeBin( uint8_t val );
-
         // minutes till restore output
         int _restore_min;
 
@@ -140,13 +140,21 @@ class Voltronic {
         // remaining time on battery in minutes
         int _remaining_min;
 
-        int _brightness_lvl = 9;
+        // minutes to do selftest, default is 12 sec
+        float _selftest_min = MIN_SELFTEST_DURATION;
+
+        int _brightness_lvl = DISPLAY_MAX_BRIGHTNESS;
 
         int _ptr = 0;
 
-        bool parseShutdownRestoreTimeouts();
+        void writeEOL();
+        void writeFloat( float val , int length, int dec );
+        void writeInt( int val, int length );
+        void writeBin( uint8_t val );
 
-        void printfixed(const char* str, int len);
+        float parseFloat(int startpos, int len);
+
+        void printFixed(const char* str, int len);
         void printRatedInfo();
 
 

@@ -61,7 +61,7 @@ void setup() {
   delayed_charge = timer_manager.create( 0,TIMER_ONE_SEC,false,nullptr,start_charging);
   beeper_timer = timer_manager.create(0,0,false,beep_on, beep_off);
   display_refresh_timer = timer_manager.create(DISPLAY_BLINK_FREQ, 0, false, refresh_display);
-  self_test = timer_manager.create(0, 10 * TIMER_ONE_SEC, false, start_self_test, stop_self_test);
+  self_test = timer_manager.create(0, MIN_SELFTEST_DURATION * 60 * TIMER_ONE_SEC, false, start_self_test, stop_self_test);
   output_power_timer = timer_manager.create();
 
   cli(); // stop interrupts
@@ -120,9 +120,9 @@ void loop() {
           delayed_charge->stop();
 
           beeper_timer->start( 8 * TIMER_ONE_SEC, TIMER_ONE_SEC );
-          lineups.startInverter();
+          lineups.toggleInverter(true);
         }
-        if( !lineups.isOutputConnected() ) lineups.connectOutput();
+        if( !lineups.readStatus(OUTPUT_CONNECTED) ) lineups.toggleOutput(true);
 
         // enable beep every second if the battery is low
         if(beeper_timer->isEnabled() && 
@@ -136,17 +136,17 @@ void loop() {
 
         // stop inverter (will set batteryMode to false)
         if(lineups.isBatteryMode()) {
-          lineups.stopInverter();
+          lineups.toggleInverter(false);
           
           beeper_timer->stop();
 
         }
         
         // connect to the mains
-        lineups.connectInput();
+        lineups.toggleInput( true );
 
         // connect the load
-        if( !lineups.isOutputConnected() ) lineups.connectOutput();
+        if( !lineups.readStatus(OUTPUT_CONNECTED) ) lineups.toggleOutput(true);
 
         // Serial.print(c_bat.reading());Serial.print(",");
         // Serial.println(charger.get_mode());
@@ -175,8 +175,8 @@ void loop() {
         break;
 
       case REGULATE_STATUS_ERROR:
-        if(lineups.isOutputConnected()) {
-          lineups.disconnectOutput();
+        if(lineups.readStatus(OUTPUT_CONNECTED)) {
+          lineups.toggleOutput(false);
           beeper_timer->stop();
           delayed_charge->stop();
           self_test->stop();
@@ -188,8 +188,8 @@ void loop() {
         break;
       
       case REGULATE_STATUS_SHUTDOWN:
-        if(lineups.isOutputConnected()) {
-          lineups.disconnectOutput();
+        if(lineups.readStatus(OUTPUT_CONNECTED)) {
+          lineups.toggleOutput(false);
           delayed_charge->stop();
           beeper_timer->stop();
           self_test->stop();
@@ -227,16 +227,19 @@ void loop() {
       serial_protocol.setInternalTemp(25.0); //TODO: replace with sensor reading
       serial_protocol.setStatus(lowByte(lineups.getStatus()));
 
-      CommandStatus exec_command = serial_protocol.executeCommandBuffer();
+      ExecuteCommand exec_command = serial_protocol.executeCommand();
 
       switch(exec_command) {
         case COMMAND_BEEPER_MUTE:
           lineups.toggleBeeper();
           break;
         case COMMAND_SELF_TEST:
-          if(!lineups.isBatteryMode() && lineups.getBatteryLevel() >= SELF_TEST_MIN_BAT_LVL ) {
-            self_test->start();
+          if(!lineups.isBatteryMode() && lineups.getBatteryLevel() >= SELF_TEST_MIN_BAT_LVL && !self_test->isEnabled()) {
+            self_test->start(0, serial_protocol.getSelftestMin() * 60 * TIMER_ONE_SEC );
           }
+          break;
+        case COMMAND_SELF_TEST_CANCEL:
+          self_test->stop();
           break;
         case COMMAND_SHUTDOWN:
           if( serial_protocol.getShutdownMin() == 0.0F ) {
@@ -249,7 +252,7 @@ void loop() {
           break;
         case COMMAND_SHUTDOWN_CANCEL:
           if(output_power_timer->isEnabled()) {
-            if(lineups.isShutdown()) {  
+            if(lineups.readStatus(SHUTDOWN_ACTIVE)) {  
               output_power_timer->setOnFinish( output_power_on );
               output_power_timer->start( 0, 10 * TIMER_ONE_SEC );
             }
@@ -259,7 +262,7 @@ void loop() {
             }
 
           }
-          else if(lineups.isShutdown()) {
+          else if(lineups.readStatus(SHUTDOWN_ACTIVE)) {
             output_power_on();
           }
 
@@ -299,16 +302,16 @@ void refresh_display() {
     display.setBatteryLevel( battery_level, direction );
     float load_level = ac_out.reading() / INTERACTIVE_MAX_AC_OUT;
     display.setLoadLevel( load_level );
-    display.setFlag( ( load_level > 0.0 ? LOAD_INDICATOR_FLAG : 0 ) | 
-                    ( battery_level > 0.0 ? BATTERY_INDICATOR_FLAG : 0 ) |
-                    ( lineups.isBatteryMode() ? BATTERY_MODE_FLAG : AC_MODE_FLAG ) );
-    display.setInputRelayStatus( bitRead(lineups.getStatus(), INPUT_RELAY_FLAG) );
-    display.setOutputRelayStatus( bitRead(lineups.getStatus(), OUTPUT_RELAY_FLAG) );
+    display.setFlag( ( load_level > 0.0 ? LOAD_INDICATOR : 0 ) | 
+                    ( battery_level > 0.0 ? BATTERY_INDICATOR : 0 ) |
+                    ( lineups.isBatteryMode() ? BATTERY_MODE_INDICATOR : AC_MODE_INDICATOR ) );
+    display.setInputRelayStatus( lineups.readStatus(INPUT_CONNECTED) );
+    display.setOutputRelayStatus( lineups.readStatus(OUTPUT_CONNECTED) );
     
-    display.setBlink( (bitRead( lineups.getStatus(), OVERLOAD_FLAG ) ? LOAD_INDICATOR_FLAG : 0) |
-                      (bitRead( lineups.getStatus(), BATTERY_LOW ) ? BATTERY_INDICATOR_FLAG : 0) |
-                      (bitRead( lineups.getStatus(), UNUSUAL_FLAG ) ? UNUSUAL_MODE_FLAG : 0) |
-                      (bitRead( lineups.getStatus(), UPS_FAULT ) ? UPS_FLAG : 0) );
+    display.setBlink( ( lineups.readStatus( OVERLOAD ) ? LOAD_INDICATOR : 0) |
+                      ( lineups.readStatus( BATTERY_LOW ) ? BATTERY_INDICATOR : 0) |
+                      ( lineups.readStatus( UNUSUAL_STATE ) ? UNUSUAL_MODE_INDICATOR : 0) |
+                      ( lineups.readStatus( UPS_FAULT ) ? UPS_FAULT_INDICATOR : 0) );
 
     display.show(blink_state);
   }
@@ -328,30 +331,30 @@ void start_charging() {
   charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT - 0.2 * INTERACTIVE_V_BAT_DELTA);
 }
 
-void print_readings(RegulateStatus status) {
-    Serial.print(status);Serial.print(",");
-    Serial.print(vac_in.reading());Serial.print(",");
-    Serial.print(vac_out.reading());Serial.print(",");
-    Serial.print(ac_out.reading());Serial.print(",");
-    Serial.print(v_bat.reading());Serial.print(",");
-    Serial.println(lineups.getStatus(), BIN);
-}
+// void print_readings(RegulateStatus status) {
+//     Serial.print(status);Serial.print(",");
+//     Serial.print(vac_in.reading());Serial.print(",");
+//     Serial.print(vac_out.reading());Serial.print(",");
+//     Serial.print(ac_out.reading());Serial.print(",");
+//     Serial.print(v_bat.reading());Serial.print(",");
+//     Serial.println(lineups.getStatus(), BIN);
+// }
 
 void start_self_test() {
-  lineups.toggleSelfTest(true);
+  lineups.setSelfTestMode(true);
 }
 
 void stop_self_test() {
-  lineups.toggleSelfTest(false);
+  lineups.setSelfTestMode(false);
 }
 
 void output_power_off() {
   Serial.println("Output power off");
-  lineups.toggleOutput(true);
+  lineups.setShutdownMode(true);
 }
 
 void output_power_on() {
   Serial.println("Output power on");
-  lineups.toggleOutput(false);
+  lineups.setShutdownMode(false);
 }
 
