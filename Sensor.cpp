@@ -51,3 +51,38 @@ long Sensor::readingR() {
     return round(reading());
 }
 
+void Sensor::setSensorParam(float value, SensorParam param) {
+    if(param == SENSOR_PARAM_OFFSET)
+        _offset = value;
+    else 
+        _scale = value;
+}
+
+float Sensor::getSensorParam(SensorParam param) {
+    if(param == SENSOR_PARAM_OFFSET)
+        return _offset;
+    else 
+        return _scale;
+}
+
+void SensorManager::registerSensor(Sensor* sensor) {
+    if(_num_sensors >= MAX_NUM_SENSORS) return;
+
+    _sensors[_num_sensors] = sensor;
+    _num_sensors++;
+
+    _dbg->print(_num_sensors);_dbg->write(' ');
+    _dbg->println(" sensor registered");
+}
+
+void SensorManager::sample() {
+    for(int i=0; i < _num_sensors; i++)
+        _sensors[i]->sample();
+}
+
+Sensor* SensorManager::get(int ptr) {
+    if(ptr >= _num_sensors) return nullptr;
+
+    return _sensors[ptr];
+}
+

@@ -34,7 +34,8 @@ enum ExecuteCommand {
     COMMAND_SHUTDOWN,
     COMMAND_SHUTDOWN_CANCEL,
     COMMAND_SET_BRIGHTNESS,
-    COMMAND_TOGGLE_DISPLAY
+    COMMAND_TOGGLE_DISPLAY,
+    COMMAND_TUNE_SENSOR
 };
 
 
@@ -106,6 +107,10 @@ class Voltronic {
         void setOutputFreqNom( int out_f_nom ) { _out_f_nom = out_f_nom; };
         int getOutputFreqNom() { return _out_f_nom; };
 
+        int getSensorPtr() { return _sensor_ptr; };
+        float getSensorParamValue() { return _sensor_value; };
+        int getSensorParam() { return _sensor_param; };
+
     private:
 
         char _buf[COMMAND_BUFFER_SIZE];
@@ -144,6 +149,10 @@ class Voltronic {
         float _selftest_min = MIN_SELFTEST_DURATION;
 
         int _brightness_lvl = DISPLAY_MAX_BRIGHTNESS;
+
+        int _sensor_ptr = 0;
+        float _sensor_value = 0;
+        int _sensor_param = 0;
 
         int _ptr = 0;
 

@@ -1,6 +1,8 @@
 #ifndef SimpleTimer_h
 #define SimpleTimer_h
 
+#include "config.h"
+
 #include <Arduino.h>
 
 #include <HardwareSerial.h>
@@ -22,11 +24,11 @@ class SimpleTimer {
         };
 
         void start() { 
-            _dbg->print(_id);
-            _dbg->print(" started with period=");
-            _dbg->print(_period);
-            _dbg->print(",duration=");
-            _dbg->println(_duration);
+            // _dbg->print(_id);
+            // _dbg->print(" timer started with period=");
+            // _dbg->print(_period);
+            // _dbg->print(",duration=");
+            // _dbg->println(_duration);
             _counter = 0;
             _enabled = true; 
         };
@@ -38,8 +40,8 @@ class SimpleTimer {
         };
 
         void stop() { 
-            _dbg->print(_id);
-            _dbg->println(" stopped");
+            // _dbg->print(_id);
+            // _dbg->println(" timer stopped");
             _enabled = false; 
         };
 
@@ -102,7 +104,7 @@ class SimpleTimerManager {
 
         HardwareSerial * _dbg;
 
-        SimpleTimer* _simple_timers[10];
+        SimpleTimer* _simple_timers[MAX_NUM_TIMERS];
         int _num_timers = 0;
 
         unsigned long _ticks = 0L;

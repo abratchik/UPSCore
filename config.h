@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 
+#define MAX_NUM_SENSORS 5
 #define SENSOR_INPUT_VAC_IN A0
 #define SENSOR_OUTPUT_VAC_IN A1
 #define SENSOR_OUTPUT_C_IN A2
@@ -18,6 +19,7 @@
 #define BEEPER_OUT 12
 
 #define TIMER_ONE_SEC   20            // number of ticks to form 1 second
+#define MAX_NUM_TIMERS  5             // number of timers used
 
 #define INTERACTIVE_DEFAULT_INPUT_VOLTAGE 230.0F
 #define INTERACTIVE_INPUT_VOLTAGE_DEVIATION 0.09F

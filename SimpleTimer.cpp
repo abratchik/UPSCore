@@ -29,8 +29,7 @@ void SimpleTimer::tick() {
     else {
         // reset the counter and launch the on_start handler if defined. Timer will be active till _counter is below _duration
         if( _counter >= _period ) {
-            // _dbg->print(_id);
-            // _dbg->println(" period reached");
+
             _counter = 0;
             _active = ( _duration > 0 ); // activate only if duration > 0 else timer becomes disabled
             _enabled = _active || ( _period > 0 );
@@ -54,14 +53,14 @@ void SimpleTimerManager::tick() {
 
 SimpleTimer* SimpleTimerManager::create(unsigned long period, unsigned long duration, bool bstart, 
                                         callback on_start, callback on_finish) {
+    
+    if(_num_timers >= MAX_NUM_TIMERS) return nullptr;
+    
     _num_timers++;
 
     _simple_timers[_num_timers - 1] = new SimpleTimer(_dbg, period, duration, bstart, on_start, on_finish);
 
     _simple_timers[_num_timers - 1]->setId(_num_timers);
-
-    // _dbg->print(_num_timers);
-    // _dbg->println(" timer created");
 
     return _simple_timers[_num_timers - 1];
 }

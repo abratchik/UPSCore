@@ -20,8 +20,9 @@ Sensor vac_in(SENSOR_INPUT_VAC_IN, MIN_INPUT_VOLTAGE, 0.164794921875, 20 );   //
 Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 165.0, 0.293255131964809, 20 ); // AC output voltage - 300V max
 Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.019452590420332, 5 );  // AC output current - 19.9A max
 Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.048778103616813, 10 );   // Battery voltage - 0 ... 49.9V
-Sensor c_bat(SENSOR_BAT_C_IN, -29.0F, 0.058455522971652, 5 );    // Battery current +/- 29.9A
+Sensor c_bat(SENSOR_BAT_C_IN, -29.0F, 0.058455522971652, 10 );    // Battery current +/- 29.9A
 
+SensorManager sensor_manager(&Serial);
 
 // init the charger on DEFAULT_CHARGER_OUT pin
 Charger charger(&c_bat, &v_bat);
@@ -57,6 +58,13 @@ void setup() {
 
   Serial.println("Start setup");
 
+  // register sensors
+  sensor_manager.registerSensor(&vac_in);
+  sensor_manager.registerSensor(&vac_out);
+  sensor_manager.registerSensor(&ac_out);
+  sensor_manager.registerSensor(&v_bat);
+  sensor_manager.registerSensor(&c_bat);
+
   // create timers
   delayed_charge = timer_manager.create( 0,TIMER_ONE_SEC,false,nullptr,start_charging);
   beeper_timer = timer_manager.create(0,0,false,beep_on, beep_off);
@@ -91,11 +99,7 @@ void setup() {
 ISR(TIMER0_COMPA_vect) {
 
   // Sample sensors
-  vac_in.sample();
-  vac_out.sample();
-  ac_out.sample();
-  v_bat.sample();
-  c_bat.sample();
+  sensor_manager.sample();
 
   // increment timers and call callback functions where applicable
   timer_manager.tick();
@@ -213,8 +217,8 @@ void loop() {
       serial_protocol.setInputVoltage(vac_in.reading());
       serial_protocol.setInputFaultVoltage(lineups.getLastFaultInputVoltage());
       serial_protocol.setOutputVoltage(vac_out.reading());
-      serial_protocol.setLoadLevel( (int) ac_out.reading() * 100 / INTERACTIVE_MAX_AC_OUT );
-      serial_protocol.setBatteryLevel( (int) lineups.getBatteryLevel() * 100 );
+      serial_protocol.setLoadLevel( (int) (ac_out.reading() * 100 / INTERACTIVE_MAX_AC_OUT) );
+      serial_protocol.setBatteryLevel((int) (lineups.getBatteryLevel() * 100) );
 
       //TODO: add estimation of remaining time here
       //if(lineups.isBatteryMode())
@@ -274,6 +278,19 @@ void loop() {
         
         case COMMAND_TOGGLE_DISPLAY:
           display.toggle();
+          break;
+
+        case COMMAND_TUNE_SENSOR:
+          Serial.print(serial_protocol.getSensorPtr());
+          Serial.write(',');
+          Serial.print(serial_protocol.getSensorParam());
+          Serial.write(',');
+          Serial.println(serial_protocol.getSensorParamValue(),4);
+          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() && 
+              serial_protocol.getSensorParam() < 2 ) {
+                sensor_manager.get(serial_protocol.getSensorPtr())->setSensorParam(serial_protocol.getSensorParamValue(),
+                                                                                   serial_protocol.getSensorParam());
+          }
           break;
 
         default:

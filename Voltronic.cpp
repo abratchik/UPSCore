@@ -65,6 +65,11 @@ ExecuteCommand Voltronic::executeCommand() {
                             writeBin(_status);
                             writeEOL();
                         }
+                        else if( _buf[1] == 'G' && _buf[2] == 'S' ) {
+                            // TODO: support Grand Status
+                            _stream->write(_buf);
+                            writeEOL();
+                        }
                         else if( _buf[1] == 'R' && _buf[2] == 'I' ) {
                             printRatedInfo();
                         }
@@ -112,6 +117,7 @@ ExecuteCommand Voltronic::executeCommand() {
                         break;
 
                     case 'F':
+                        // Query UPS for rated information #4 (old)
                         printRatedInfo();
                         break;
                     
@@ -133,6 +139,7 @@ ExecuteCommand Voltronic::executeCommand() {
                         }
                         
                         break;
+
                     case 'T':
                         command_status = COMMAND_SELF_TEST;
                         if(_buf[1] != 'L') {
@@ -179,6 +186,22 @@ ExecuteCommand Voltronic::executeCommand() {
                                 command_status = COMMAND_SHUTDOWN_CANCEL;
                                 break;
                         }
+                        break;
+
+                    case 'V':
+                        // undocumented case - allows to tune sensor params
+                        // format: VNPMVKKKKKKKKKKKKKKKKK, where
+                        // N - id of the sensor (0..4)
+                        // M - can be 0 (scale) or 1 (offset) 
+                        // K - float value to be set (17 symbols). 
+
+                        if(_buf[2] == 'P' && _buf[4] == 'V') {
+                            _sensor_ptr = (int) parseFloat(1,1);
+                            _sensor_param = (int) parseFloat(3,1);
+                            _sensor_value = parseFloat(5,17);
+                            command_status = COMMAND_TUNE_SENSOR;
+                        }
+                        break;
 
                     default:
                         _stream->write(_buf);

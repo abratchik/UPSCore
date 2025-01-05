@@ -7,6 +7,11 @@
 #define DEFAULT_OFFSET 0.00
 #define DEFAULT_NUM_SAMPLES 30
 
+enum SensorParam {
+    SENSOR_PARAM_SCALE,
+    SENSOR_PARAM_OFFSET
+};
+
 class Sensor {
     public:
 
@@ -27,15 +32,12 @@ class Sensor {
 
         // Returns true if necessary number of samples has been taken already
         bool ready() { return _ready; };
-        
-        void setOffset(float offset = DEFAULT_OFFSET ) { _offset = offset; };
-        float getOffset() { return _offset; };
-
-        void setScale(float scale = DEFAULT_SCALE ) { _scale = scale; };
-        float getScale() { return _scale; };
 
         void setNumSamples( int num_samples = DEFAULT_NUM_SAMPLES ) { _num_samples = num_samples; };
         int getNumSamples() { return _num_samples; };
+
+        void setSensorParam(float value, SensorParam param);
+        float getSensorParam(SensorParam param);
 
     private:
         int _pin;
@@ -50,6 +52,28 @@ class Sensor {
         float _offset = DEFAULT_OFFSET;
         float _scale = DEFAULT_SCALE;
 
+};
+
+class SensorManager {
+    public:
+        
+        SensorManager(HardwareSerial * dbg){
+            _dbg = dbg;
+        };
+
+        void registerSensor(Sensor* sensor);
+
+        void sample();
+
+        Sensor* get(int ptr);
+
+        int getNumSensors() { return _num_sensors; };
+
+    private:
+        HardwareSerial * _dbg;
+
+        Sensor* _sensors[MAX_NUM_SENSORS];
+        int _num_sensors = 0;
 };
 
 #endif
