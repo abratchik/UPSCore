@@ -56,7 +56,7 @@ SimpleTimer* output_power_timer =  nullptr;
 void setup() {
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
 
-  Serial.println("Start setup");
+  Serial.println(PART_MODEL);
 
   // register sensors
   sensor_manager.registerSensor(&vac_in);
@@ -91,7 +91,7 @@ void setup() {
   delay(1000);
   beep_off();
 
-  Serial.println("Complete setup");
+  Serial.println("Ready>");
 }
 
 

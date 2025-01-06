@@ -71,8 +71,8 @@ void SensorManager::registerSensor(Sensor* sensor) {
     _sensors[_num_sensors] = sensor;
     _num_sensors++;
 
-    _dbg->print(_num_sensors);_dbg->write(' ');
-    _dbg->println(" sensor registered");
+    // _dbg->print(_num_sensors);_dbg->write(' ');
+    // _dbg->println(" sensor registered");
 }
 
 void SensorManager::sample() {
