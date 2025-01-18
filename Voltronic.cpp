@@ -17,7 +17,6 @@ char Voltronic::process() {
 
         if(ch == '\r') {
             _buf[_ptr] = '\0';
-            _ptr = 0;
             return ch;
         }
         else {
@@ -38,10 +37,11 @@ ExecuteCommand Voltronic::executeCommand() {
     int command_status = COMMAND_NONE;
 
     if(_buf[0] == 'M') {
+         _stream->write('#'); 
         _stream->write(_protocol); 
         writeEOL();
     }
-    else {
+    else if( _buf[0] != '#' && _buf[0] != '(') {
         switch(_protocol) {
             case 'V':
                 switch(_buf[0]) {
@@ -67,7 +67,8 @@ ExecuteCommand Voltronic::executeCommand() {
                         }
                         else if( _buf[1] == 'G' && _buf[2] == 'S' ) {
                             // TODO: support Grand Status
-                            _stream->write(_buf);
+                            _stream->write('#'); 
+                            _stream->write(_buf, _ptr);
                             writeEOL();
                         }
                         else if( _buf[1] == 'R' && _buf[2] == 'I' ) {
@@ -189,22 +190,37 @@ ExecuteCommand Voltronic::executeCommand() {
                         break;
 
                     case 'V':
-                        // undocumented case - allows to tune sensor params
+                        // undocumented case - allows to tune or read sensor params
                         // format: VNPMVKKKKKKKKKKKKKKKKK, where
                         // N - id of the sensor (0..4)
-                        // M - can be 0 (scale) or 1 (offset) 
-                        // K - float value to be set (17 symbols). 
+                        // M - can be 0 (scale) or 1 (offset). PM can be omitted - then sensor params are printed
+                        // K - float value to be set (17 symbols). Can be omitted
+                        
+                        _sensor_ptr = (int) parseFloat(1,1);
 
-                        if(_buf[2] == 'P' && _buf[4] == 'V') {
-                            _sensor_ptr = (int) parseFloat(1,1);
+                        if( _buf[2] == 'P' ) {
                             _sensor_param = (int) parseFloat(3,1);
-                            _sensor_value = parseFloat(5,17);
-                            command_status = COMMAND_TUNE_SENSOR;
+
+                            if( _buf[4] == 'V' ) {
+                                _sensor_value = parseFloat(5,17);
+                                command_status = COMMAND_TUNE_SENSOR;
+                            }
+                            else 
+                                command_status = COMMAND_READ_SENSOR;
                         }
+                        else
+                            command_status = COMMAND_READ_SENSOR;
+                        break;
+
+                    case 'W':
+                        // undocumented case - save sensor params to EEPROM
+                        command_status = COMMAND_SAVE_SENSORS;
                         break;
 
                     default:
-                        _stream->write(_buf);
+                        // Not implemented
+                         _stream->write('#'); 
+                        _stream->write('N');
                         writeEOL();
                         break;
 
@@ -212,6 +228,7 @@ ExecuteCommand Voltronic::executeCommand() {
                 break;
             default:
                 // P, T protocols not implemented
+                _stream->write('#'); 
                 _stream->write('N');
                 writeEOL();
                 break;

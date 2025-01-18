@@ -55,8 +55,8 @@ SimpleTimer* output_power_timer =  nullptr;
 
 void setup() {
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
-
-  Serial.println(PART_MODEL);
+  
+  Serial.print('#'); Serial.println(PART_MODEL);
 
   // register sensors
   sensor_manager.registerSensor(&vac_in);
@@ -64,6 +64,9 @@ void setup() {
   sensor_manager.registerSensor(&ac_out);
   sensor_manager.registerSensor(&v_bat);
   sensor_manager.registerSensor(&c_bat);
+  
+  // load params from EEPROM
+  sensor_manager.loadSensorParams();
 
   // create timers
   delayed_charge = timer_manager.create( 0,TIMER_ONE_SEC,false,nullptr,start_charging);
@@ -91,7 +94,7 @@ void setup() {
   delay(1000);
   beep_off();
 
-  Serial.println("Ready>");
+  Serial.println("#");
 }
 
 
@@ -279,18 +282,33 @@ void loop() {
         case COMMAND_TOGGLE_DISPLAY:
           display.toggle();
           break;
-
-        case COMMAND_TUNE_SENSOR:
+        
+        case COMMAND_READ_SENSOR:
+          Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
+          Serial.write('(');
           Serial.print(serial_protocol.getSensorPtr());
           Serial.write(',');
-          Serial.print(serial_protocol.getSensorParam());
+          Serial.print(sensor->getSensorParam(SENSOR_PARAM_SCALE));
           Serial.write(',');
-          Serial.println(serial_protocol.getSensorParamValue(),4);
+          Serial.print(sensor->getSensorParam(SENSOR_PARAM_OFFSET));
+          break;
+
+        case COMMAND_TUNE_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() && 
               serial_protocol.getSensorParam() < 2 ) {
                 sensor_manager.get(serial_protocol.getSensorPtr())->setSensorParam(serial_protocol.getSensorParamValue(),
                                                                                    serial_protocol.getSensorParam());
+            Serial.write('(');
+            Serial.print(serial_protocol.getSensorPtr());
+            Serial.write(',');
+            Serial.print(serial_protocol.getSensorParam());
+            Serial.write(',');
+            Serial.println(serial_protocol.getSensorParamValue(),4);
           }
+          break;
+        
+        case COMMAND_SAVE_SENSORS:
+          sensor_manager.saveSensorParams();
           break;
 
         default:

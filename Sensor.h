@@ -3,6 +3,8 @@
 
 #include  "config.h"
 
+#include "EEPROM.h"
+
 #define DEFAULT_SCALE 1.00
 #define DEFAULT_OFFSET 0.00
 #define DEFAULT_NUM_SAMPLES 30
@@ -69,11 +71,20 @@ class SensorManager {
 
         int getNumSensors() { return _num_sensors; };
 
+        // save sensor params to EEPROM
+        void saveSensorParams();
+        
+        // load sensor params from EEPROM. If sensor params were not saved before, they are initialized in EEPROM
+        void loadSensorParams();
+
     private:
         HardwareSerial * _dbg;
 
         Sensor* _sensors[MAX_NUM_SENSORS];
         int _num_sensors = 0;
+
+        int loadInt(unsigned int addr);
+        float loadFloat(unsigned int addr);
 };
 
 #endif
