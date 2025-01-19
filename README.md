@@ -52,9 +52,66 @@ The solution supports most of the Voltronic commands. Some extensions are added 
 <tr><td>CT</td><td>Cancel the self-test</td></tr>
 <tr><td>SnRm</td><td>Disconnect the load in n (.2→.9, 01→99) minutes and then connect again after m (0001..9999) minutes</td></tr>
 <tr><td>CS</td><td>Re-connect the load or cancel the previous S command</td></tr>
+<tr><td>VN</td><td>Print the scale factor and the offset of the sensor specified by the index N</td></tr>
+<tr><td>VNPMVK...K</td><td>allows to tune or read sensor params, where:<br>
+N - index of the sensor (1 digit)<br>
+M - can be 0 (scale) or 1 (offset).<br>
+K...K - float value to be set (17 symbols, counting with the decimal dot).</td></tr>
+<tr><td>W</td><td>Save the sensor params in the EEPROM</td></tr>
 </tbody>
 </table>
 
+## Sensors
+The crucial part of line-interactive UPS is a set of sensors measuring input and output voltage and current as well as battery parameters. It is very important to ensure that these sensors are configured and tuned correctly so that the UPS could function properly.
+
+The comprehensive list of sensors is represented in the table below. Each sensor is characterized by two parameters: <I>scale factor</I> and <I>offset</I>, both of the float type. The purpose of these parameters is to transform the integer reading from the Arduino analog input to the voltage, or amperage, or temperature in physical units. 
+
+<table>
+<thead>
+    <td><b>Index</b></td>
+    <td><b>Purpose</b></td>
+    <td><b>Limits</b></td>
+    <td><b>Default scale</b></td>
+    <td><b>Default offset</b></td>
+</thead>
+<tbody>
+    <tr>
+        <td>0</td>
+        <td>Input voltage</td>
+        <td>0...300VAC</td>
+        <td>0.164794921875</td>
+        <td>170</td>
+    </tr>
+    <tr>
+        <td>1</td>
+        <td>Output voltage</td>
+        <td>0...300VAC</td>
+        <td>0.164794921875</td>
+        <td>170</td>
+    </tr> 
+    <tr>
+        <td>2</td>
+        <td>Output current</td>
+        <td>0...19.9A</td>
+        <td>0.019452590420332</td>
+        <td>0</td>
+    </tr>
+    <tr>
+        <td>3</td>
+        <td>Battery voltage</td>
+        <td>0...49.9V</td>
+        <td>0.048778103616813</td>
+        <td>0</td>
+    </tr>     
+     <tr>
+        <td>4</td>
+        <td>Battery current</td>
+        <td>-29.9...29.9A</td>
+        <td>0.058455522971652</td>
+        <td>-29.9</td>
+    </tr>           
+</tbody>
+</table>
 
 ## License
 [GPLv3](/LICENSE)
