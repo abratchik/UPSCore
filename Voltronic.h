@@ -113,6 +113,13 @@ class Voltronic {
         float getSensorParamValue() { return _sensor_value; };
         int getSensorParam() { return _sensor_param; };
 
+        void printSensorParams(float offset, float scale, float value = 0);
+
+        void printPartModel();
+        void printPrompt();
+        
+        void writeEOL();
+
     private:
 
         char _buf[COMMAND_BUFFER_SIZE];
@@ -158,7 +165,6 @@ class Voltronic {
 
         int _ptr = 0;
 
-        void writeEOL();
         void writeFloat( float val , int length, int dec );
         void writeInt( int val, int length );
         void writeBin( uint8_t val );

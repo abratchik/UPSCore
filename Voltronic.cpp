@@ -37,7 +37,7 @@ ExecuteCommand Voltronic::executeCommand() {
     int command_status = COMMAND_NONE;
 
     if(_buf[0] == 'M') {
-         _stream->write('#'); 
+        printPrompt(); 
         _stream->write(_protocol); 
         writeEOL();
     }
@@ -67,7 +67,7 @@ ExecuteCommand Voltronic::executeCommand() {
                         }
                         else if( _buf[1] == 'G' && _buf[2] == 'S' ) {
                             // TODO: support Grand Status
-                            _stream->write('#'); 
+                            printPrompt(); 
                             _stream->write(_buf, _ptr);
                             writeEOL();
                         }
@@ -154,7 +154,7 @@ ExecuteCommand Voltronic::executeCommand() {
                         break;
                     
                     case 'I':
-                        _stream->write('#');
+                        printPrompt();
                         printFixed(MANUFACTURER, 15);
                         _stream->write(' ');
                         printFixed(PART_NUMBER,10);
@@ -219,7 +219,7 @@ ExecuteCommand Voltronic::executeCommand() {
 
                     default:
                         // Not implemented
-                         _stream->write('#'); 
+                        printPrompt(); 
                         _stream->write('N');
                         writeEOL();
                         break;
@@ -228,7 +228,7 @@ ExecuteCommand Voltronic::executeCommand() {
                 break;
             default:
                 // P, T protocols not implemented
-                _stream->write('#'); 
+                printPrompt(); 
                 _stream->write('N');
                 writeEOL();
                 break;
@@ -311,7 +311,7 @@ void Voltronic::printFixed(const char* str, int len) {
 }
 
 void Voltronic::printRatedInfo() {
-    _stream->write('#');
+    printPrompt();
     writeFloat(_out_v_nom, 4, 1);
     _stream->write(' ');
     writeInt(_out_c_nom, 3);
@@ -320,4 +320,24 @@ void Voltronic::printRatedInfo() {
     _stream->write(' ');
     writeFloat(_out_f_nom, 3, 1);
     writeEOL();
+}
+
+void Voltronic::printSensorParams(float offset, float scale, float value = 0) {
+    _stream->write('(');
+    _stream->print(_sensor_ptr);
+    _stream->write(',');
+    writeFloat(offset,17,15);
+    _stream->write(',');
+    writeFloat(scale,17,15);
+    _stream->write(',');
+    writeFloat(value,5,2);
+}
+
+void Voltronic::printPartModel() {
+   printPrompt(); 
+   _stream->println(PART_MODEL);
+}
+
+void Voltronic::printPrompt() {
+    _stream->write('#');
 }

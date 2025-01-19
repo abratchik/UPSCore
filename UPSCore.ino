@@ -17,7 +17,7 @@ SimpleTimerManager timer_manager(&Serial);
 
 //init sensors
 Sensor vac_in(SENSOR_INPUT_VAC_IN, MIN_INPUT_VOLTAGE, 0.164794921875, 20 );   // AC input voltage - 300V max
-Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 165.0, 0.293255131964809, 20 ); // AC output voltage - 300V max
+Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 165.0, 0.164794921875, 20 ); // AC output voltage - 300V max
 Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.019452590420332, 5 );  // AC output current - 19.9A max
 Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.048778103616813, 10 );   // Battery voltage - 0 ... 49.9V
 Sensor c_bat(SENSOR_BAT_C_IN, -29.0F, 0.058455522971652, 10 );    // Battery current +/- 29.9A
@@ -56,7 +56,7 @@ SimpleTimer* output_power_timer =  nullptr;
 void setup() {
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
   
-  Serial.print('#'); Serial.println(PART_MODEL);
+  serial_protocol.printPartModel();
 
   // register sensors
   sensor_manager.registerSensor(&vac_in);
@@ -94,7 +94,8 @@ void setup() {
   delay(1000);
   beep_off();
 
-  Serial.println("#");
+  serial_protocol.printPrompt();
+  serial_protocol.writeEOL();
 }
 
 
@@ -284,26 +285,23 @@ void loop() {
           break;
         
         case COMMAND_READ_SENSOR:
-          Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-          Serial.write('(');
-          Serial.print(serial_protocol.getSensorPtr());
-          Serial.write(',');
-          Serial.print(sensor->getSensorParam(SENSOR_PARAM_SCALE));
-          Serial.write(',');
-          Serial.print(sensor->getSensorParam(SENSOR_PARAM_OFFSET));
+          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() ) {
+            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
+            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_SCALE), 
+                                              sensor->getSensorParam(SENSOR_PARAM_OFFSET),
+                                              sensor->reading());
+          }
           break;
 
         case COMMAND_TUNE_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() && 
               serial_protocol.getSensorParam() < 2 ) {
-                sensor_manager.get(serial_protocol.getSensorPtr())->setSensorParam(serial_protocol.getSensorParamValue(),
-                                                                                   serial_protocol.getSensorParam());
-            Serial.write('(');
-            Serial.print(serial_protocol.getSensorPtr());
-            Serial.write(',');
-            Serial.print(serial_protocol.getSensorParam());
-            Serial.write(',');
-            Serial.println(serial_protocol.getSensorParamValue(),4);
+
+            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
+            sensor->setSensorParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
+            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_SCALE), 
+                                              sensor->getSensorParam(SENSOR_PARAM_OFFSET),
+                                              sensor->reading());
           }
           break;
         
@@ -384,12 +382,12 @@ void stop_self_test() {
 }
 
 void output_power_off() {
-  Serial.println("Output power off");
+  // Serial.println("Output power off");
   lineups.setShutdownMode(true);
 }
 
 void output_power_on() {
-  Serial.println("Output power on");
+  // Serial.println("Output power on");
   lineups.setShutdownMode(false);
 }
 
