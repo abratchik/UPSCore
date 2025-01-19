@@ -83,8 +83,8 @@ class SensorManager {
         Sensor* _sensors[MAX_NUM_SENSORS];
         int _num_sensors = 0;
 
-        int loadInt(unsigned int addr);
-        float loadFloat(unsigned int addr);
+        int loadInt(unsigned long addr);
+        float loadFloat(unsigned long addr);
 };
 
 #endif

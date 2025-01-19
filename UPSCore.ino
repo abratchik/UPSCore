@@ -287,8 +287,8 @@ void loop() {
         case COMMAND_READ_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() ) {
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_SCALE), 
-                                              sensor->getSensorParam(SENSOR_PARAM_OFFSET),
+            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_OFFSET), 
+                                              sensor->getSensorParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
           }
           break;
@@ -299,8 +299,8 @@ void loop() {
 
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
             sensor->setSensorParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
-            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_SCALE), 
-                                              sensor->getSensorParam(SENSOR_PARAM_OFFSET),
+            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_OFFSET), 
+                                              sensor->getSensorParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
           }
           break;

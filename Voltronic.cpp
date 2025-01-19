@@ -322,15 +322,16 @@ void Voltronic::printRatedInfo() {
     writeEOL();
 }
 
-void Voltronic::printSensorParams(float offset, float scale, float value = 0) {
+void Voltronic::printSensorParams( float offset, float scale,  float value = 0) {
     _stream->write('(');
     _stream->print(_sensor_ptr);
-    _stream->write(',');
-    writeFloat(offset,17,15);
-    _stream->write(',');
-    writeFloat(scale,17,15);
-    _stream->write(',');
-    writeFloat(value,5,2);
+    _stream->write(' ');
+    _stream->print(offset,5);
+    _stream->write(' ');
+    _stream->print(scale,5);
+    _stream->write(' ');
+    _stream->print(value);
+    writeEOL();
 }
 
 void Voltronic::printPartModel() {

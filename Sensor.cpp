@@ -87,7 +87,7 @@ Sensor* SensorManager::get(int ptr) {
 }
 
 void SensorManager::saveSensorParams() {
-    unsigned int addr = 0;
+    unsigned long addr = 0;
     EEPROM.put(addr, _num_sensors);
     addr += sizeof(int);
     for(int i=0; i < _num_sensors; i++ ) {
@@ -99,9 +99,9 @@ void SensorManager::saveSensorParams() {
 }
 
 void SensorManager::loadSensorParams() {
-    unsigned int addr = 0;
-    
-    if(! loadInt(addr) != _num_sensors) {
+    unsigned long addr = 0;
+
+    if( loadInt(addr) != _num_sensors) {
         saveSensorParams();
         return;
     }
@@ -109,6 +109,7 @@ void SensorManager::loadSensorParams() {
     addr += sizeof(int);
 
     for(int i=0; i < _num_sensors; i++ ) {
+
         _sensors[i]->setSensorParam(loadFloat(addr), SENSOR_PARAM_SCALE);
         addr += sizeof(float);
         _sensors[i]->setSensorParam(loadFloat(addr), SENSOR_PARAM_OFFSET);
@@ -117,7 +118,7 @@ void SensorManager::loadSensorParams() {
 
 }
 
-int SensorManager::loadInt(unsigned int addr) {
+int SensorManager::loadInt(unsigned long addr) {
     int result = 0;
 
     EEPROM.get(addr, result);
@@ -125,7 +126,7 @@ int SensorManager::loadInt(unsigned int addr) {
     return result;
 }
 
-float SensorManager::loadFloat(unsigned int addr) {
+float SensorManager::loadFloat(unsigned long addr) {
     float result = 0.0F;
 
     EEPROM.get(addr, result);
