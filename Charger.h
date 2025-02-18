@@ -3,10 +3,11 @@
 
 #include "Sensor.h"
 
-#define MAXCOUT 1024
+#define MAXCOUT 255
 #define sgn(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
 
-#define DEFAULT_CHARGER_OUT     10     // Pin 10 is by default
+#define DEFAULT_CHARGER_OUT         4      // Charger ON/OFF out
+#define DEFAULT_CHARGER_PWM_OUT     10     // PWM out
 
 
 enum ChargingStatus {
@@ -31,7 +32,9 @@ class Charger {
     public:
 
         //Only 16-bit timer can be used
-        Charger(Sensor* current_sensor, Sensor* voltage_sensor, int _cout_pin = DEFAULT_CHARGER_OUT);   
+        Charger(Sensor* current_sensor, Sensor* voltage_sensor, 
+                int cout_pin = DEFAULT_CHARGER_PWM_OUT, 
+                int charging_pin = DEFAULT_CHARGER_OUT);   
 
         void set_current_sensor(Sensor* current_sensor) {_current_sensor = current_sensor;};
         void set_voltage_sensor(Sensor* voltage_sensor) {_voltage_sensor = voltage_sensor;};
@@ -70,8 +73,8 @@ class Charger {
 
     private:
 
-        // pin for PWM signal managing the chargig current
-        int _cout_pin;   
+        // PWM signal managing the charging current and the on/off charging signal
+        int _cout_pin, _charging_pin;   
 
         // charging current value (to be compared with sensor)
         float _charging_current = 0;      
@@ -92,6 +95,11 @@ class Charger {
         Sensor* _voltage_sensor = NULL;
 
         bool _charging = false;
+
+        void set_charging(bool charging) {
+            _charging = charging;
+            analogWrite(_charging_pin, ( charging? HIGH : LOW ) );
+        };
 
 
 };

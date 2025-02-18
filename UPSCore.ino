@@ -17,14 +17,14 @@ SimpleTimerManager timer_manager(&Serial);
 
 //init sensors
 Sensor vac_in(SENSOR_INPUT_VAC_IN, MIN_INPUT_VOLTAGE, 0.164794921875, 20 );   // AC input voltage - 300V max
-Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 165.0, 0.164794921875, 20 ); // AC output voltage - 300V max
-Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.019452590420332, 5 );  // AC output current - 19.9A max
-Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.048778103616813, 10 );   // Battery voltage - 0 ... 49.9V
-Sensor c_bat(SENSOR_BAT_C_IN, -29.0F, 0.058455522971652, 10 );    // Battery current +/- 29.9A
+Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.3835, 20 ); // AC output voltage - 300V max
+Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20 );  // AC output current 
+Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.0528, 20 );   // Battery voltage 
+Sensor c_bat(SENSOR_BAT_C_IN, -38.82F, 0.0787525795590312F, 20 );    // Battery current +/- 29.9A
 
 SensorManager sensor_manager(&Serial);
 
-// init the charger on DEFAULT_CHARGER_OUT pin
+// init the charger on DEFAULT_CHARGER_PWM_OUT pin
 Charger charger(&c_bat, &v_bat);
 void start_charging();
 SimpleTimer* delayed_charge = nullptr;
@@ -83,6 +83,10 @@ void setup() {
   TCCR0B = _BV(WGM02)|_BV(CS02)|_BV(CS00);   /* Phase Correct PWM mode, Prescaler = 1024 */
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
+
+  // Timer 1 used for charging 
+  TCCR1A = _BV(WGM10) | _BV(WGM11);  // 10bit
+  TCCR1B = _BV(WGM12) | _BV(CS10);   // x1 fast pwm
 
   sei(); // resume interrupts
 
@@ -325,8 +329,8 @@ void refresh_display() {
 
   if( vac_in.ready() && ac_out.ready() && v_bat.ready() ) { 
     display.clear(false);
-    display.setInputReading( max(vac_in.readingR(), MIN_INPUT_VOLTAGE ) );
-    display.setOutputReading(max(vac_out.readingR(), 165));
+    display.setInputReading( vac_in.readingR() );
+    display.setOutputReading( vac_out.readingR() );
     float battery_level = lineups.getBatteryLevel();
     ReadingDirection direction = lineups.isBatteryMode() ? 
                                     LEVEL_DECREASING : 

@@ -2,7 +2,7 @@
 
 Display::Display()
   : TM1640(DISPLAY_DA_OUT, DISPLAY_CLK_OUT, DISPLAY_MAX_POS) {  
-    setupDisplay(true, DISPLAY_MAX_BRIGHTNESS);  
+    setupDisplay(true, DISPLAY_DEFAULT_BRIGHTNESS);  
 }
 
 void Display::setInputReading(int reading, ReadingUnit mode ) {

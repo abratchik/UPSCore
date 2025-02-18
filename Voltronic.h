@@ -157,7 +157,7 @@ class Voltronic {
         // minutes to do selftest, default is 12 sec
         float _selftest_min = MIN_SELFTEST_DURATION;
 
-        int _brightness_lvl = DISPLAY_MAX_BRIGHTNESS;
+        int _brightness_lvl = DISPLAY_DEFAULT_BRIGHTNESS;
 
         int _sensor_ptr = 0;
         float _sensor_value = 0;

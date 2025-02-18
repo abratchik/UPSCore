@@ -1,14 +1,18 @@
 #include "Charger.h"
 
 
-Charger::Charger(Sensor* current_sensor, Sensor* voltage_sensor, int cout_pin) {
+Charger::Charger(Sensor* current_sensor, Sensor* voltage_sensor, int cout_pin, int charging_pin) {
     _cout_pin = cout_pin;
+    _charging_pin = charging_pin;
+
     set_current_sensor(current_sensor);
     set_voltage_sensor(voltage_sensor);
     _charging_mode = CHARGING_NOT_STARTED;
-    _charging = false;
 
-    pinMode(_cout_pin, OUTPUT);         
+    pinMode(_cout_pin, OUTPUT);
+    pinMode(_charging_pin, OUTPUT);  
+
+    set_charging(false);       
 }
 
 void Charger::start(float current, float voltage) {
@@ -17,7 +21,7 @@ void Charger::start(float current, float voltage) {
     set_current(current);
     set_voltage(voltage);
 
-    _charging = true;
+    set_charging(true);
 
     _charging_mode = CHARGING_BY_CC;
 }
@@ -42,12 +46,12 @@ void Charger::regulate() {
         _cout_regv = 0;
         analogWrite(_cout_pin, _cout_regv);
         _charging_mode = CHARGING_TARGET_NOT_SET;
-        _charging  = false;
+        set_charging(false);
         return;                          
     }
     if(_current_sensor == NULL) {
         _charging_mode = CHARGING_C_SENSOR_NOT_SET; 
-        _charging = false;
+        set_charging(false);
         return;
     } 
     if(!_current_sensor->ready()) {
@@ -56,7 +60,7 @@ void Charger::regulate() {
     }    
     if(_voltage_sensor == NULL) {
         _charging_mode =  CHARGING_V_SENSOR_NOT_SET;
-        _charging = false;
+        set_charging(false);
         return;
     }      
     if(!_voltage_sensor->ready()) {
@@ -69,7 +73,7 @@ void Charger::regulate() {
 
     if(reading_v <= _min_charge_voltage) {
         _charging_mode =  CHARGING_BATTERY_DEAD; // battery fully depleted, cannot charge
-        _charging = false;
+        set_charging(false);
         return;
     }
 
@@ -93,7 +97,7 @@ void Charger::regulate() {
             _cout_regv = 0;
             analogWrite(_cout_pin, _cout_regv);
             _charging_mode = CHARGING_COMPLETE;
-            _charging  = false;
+            set_charging(false);
             return ;                              
         }
         // check if current is over the CC, regulate current
@@ -108,17 +112,13 @@ void Charger::regulate() {
     _cout_regv += sgn(deviation) * step;
 
     // Checking regulator threshold
-    if(_cout_regv >= MAXCOUT) {
-        _cout_regv = 0;
-        analogWrite(_cout_pin, _cout_regv);
-        _charging_mode = CHARGING_MAX_HIT;
-        return;                         
+    if( _cout_regv > MAXCOUT ) {
+        _cout_regv = MAXCOUT;
+        _charging_mode = CHARGING_MAX_HIT;                       
     }
-    if(_cout_regv <= 0) {
+    else if( _cout_regv < 0 ) {
         _cout_regv = 0;
-        analogWrite(_cout_pin, _cout_regv);
-        _charging_mode = CHARGING_MIN_HIT;
-        return;                         
+        _charging_mode = CHARGING_MIN_HIT;                
     }
 
     analogWrite(_cout_pin, _cout_regv);
@@ -133,6 +133,6 @@ void Charger::stop() {
     
     _charging_mode = CHARGING_NOT_STARTED;
     
-    _charging = false;
+    set_charging(false);
 
 }
