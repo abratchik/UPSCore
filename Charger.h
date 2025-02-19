@@ -3,7 +3,7 @@
 
 #include "Sensor.h"
 
-#define MAXCOUT 255
+#define MAXCOUT 254
 #define sgn(x) ((x) < 0 ? -1 : ((x) > 0 ? 1 : 0))
 
 #define DEFAULT_CHARGER_OUT         4      // Charger ON/OFF out

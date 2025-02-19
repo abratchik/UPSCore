@@ -79,36 +79,36 @@ The comprehensive list of sensors is represented in the table below. Each sensor
         <td>0</td>
         <td>Input voltage</td>
         <td>0...300VAC</td>
-        <td>0.164794921875</td>
-        <td>170</td>
+        <td>0.875</td>
+        <td>0</td>
     </tr>
     <tr>
         <td>1</td>
         <td>Output voltage</td>
         <td>0...300VAC</td>
-        <td>0.164794921875</td>
-        <td>170</td>
+        <td>0.375</td>
+        <td>0</td>
     </tr> 
     <tr>
         <td>2</td>
         <td>Output current</td>
-        <td>0...19.9A</td>
-        <td>0.019452590420332</td>
+        <td>0...9A</td>
+        <td>0.007</td>
         <td>0</td>
     </tr>
     <tr>
         <td>3</td>
         <td>Battery voltage</td>
         <td>0...49.9V</td>
-        <td>0.048778103616813</td>
+        <td>0.05298</td>
         <td>0</td>
     </tr>     
      <tr>
         <td>4</td>
         <td>Battery current</td>
         <td>-29.9...29.9A</td>
-        <td>0.058455522971652</td>
-        <td>-29.9</td>
+        <td>0.07362</td>
+        <td>-37.61</td>
     </tr>           
 </tbody>
 </table>

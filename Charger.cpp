@@ -107,16 +107,16 @@ void Charger::regulate() {
     }
 
     // calculate the step based on the deviation
-    step = exp(abs(deviation*100)* 0.04);
+    step = exp(abs(deviation*100)* 0.01);
     
     _cout_regv += sgn(deviation) * step;
 
     // Checking regulator threshold
-    if( _cout_regv > MAXCOUT ) {
+    if( _cout_regv >= MAXCOUT ) {
         _cout_regv = MAXCOUT;
-        _charging_mode = CHARGING_MAX_HIT;                       
+        _charging_mode = CHARGING_MAX_HIT;                    
     }
-    else if( _cout_regv < 0 ) {
+    else if( _cout_regv <= 0 ) {
         _cout_regv = 0;
         _charging_mode = CHARGING_MIN_HIT;                
     }

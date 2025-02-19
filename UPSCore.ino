@@ -11,16 +11,14 @@
 
 #include "Voltronic.h"
 
-#define MIN_INPUT_VOLTAGE   170.0
-
 SimpleTimerManager timer_manager(&Serial);
 
 //init sensors
-Sensor vac_in(SENSOR_INPUT_VAC_IN, MIN_INPUT_VOLTAGE, 0.164794921875, 20 );   // AC input voltage - 300V max
-Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.3835, 20 ); // AC output voltage - 300V max
-Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20 );  // AC output current 
-Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.0528, 20 );   // Battery voltage 
-Sensor c_bat(SENSOR_BAT_C_IN, -38.82F, 0.0787525795590312F, 20 );    // Battery current +/- 29.9A
+Sensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, TIMER_ONE_SEC );   // AC input voltage - 300V max
+Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, TIMER_ONE_SEC ); // AC output voltage - 300V max
+Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, TIMER_ONE_SEC );  // AC output current 
+Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, TIMER_ONE_SEC );   // Battery voltage 
+Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, TIMER_ONE_SEC );    // Battery current +/- 29.9A
 
 SensorManager sensor_manager(&Serial);
 
@@ -364,7 +362,7 @@ void beep_off() {
 
 void start_charging() {
   charger.set_min_charge_voltage(INTERACTIVE_MIN_V_BAT);        
-  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.02F);    // cutoff current = 2% of AH
+  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.01F);    // cutoff current = 2% of AH
   charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT - 0.2 * INTERACTIVE_V_BAT_DELTA);
 }
 

@@ -65,6 +65,7 @@ class SensorManager {
 
         void registerSensor(Sensor* sensor);
 
+        // Take a sample for all the registered sensors
         void sample();
 
         Sensor* get(int ptr);

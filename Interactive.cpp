@@ -63,7 +63,7 @@ RegulateStatus Interactive::regulate() {
     // wrong output voltage protection after inverter
     if(_batteryMode && _vac_out->ready()) {
         float vac_output = _vac_out->reading();
-        if( abs(_nominal_vac_input - vac_output) > nominal_deviation ) 
+        if( vac_output - _nominal_vac_input  > nominal_deviation  ) 
             writeStatus(UPS_FAULT, true);
     }
 

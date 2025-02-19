@@ -18,7 +18,7 @@ void Sensor::sample() {
 
     if(_ready) {
 
-        int oldest_reading = *( _readings +  next_counter % _num_samples );
+        int oldest_reading = *( _readings + _counter );
 
         _average_reading = (float)( reading - oldest_reading ) / _num_samples  +  _average_reading;
     }
