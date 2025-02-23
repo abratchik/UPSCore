@@ -7,8 +7,6 @@
 #include "Sensor.h"
 #include "Charger.h"
 
-// fully charged minus fully drained battery voltage 
-const static float INTERACTIVE_V_BAT_DELTA = INTERACTIVE_MAX_V_BAT - INTERACTIVE_MIN_V_BAT;
 
 enum InteractiveStatusFlags {
     BEEPER_IS_ACTIVE,           // Beeper activated

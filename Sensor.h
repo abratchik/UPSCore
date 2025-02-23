@@ -2,8 +2,7 @@
 #define Sensor_h
 
 #include  "config.h"
-
-#include "EEPROM.h"
+#include "Settings.h"
 
 #define DEFAULT_SCALE 1.00
 #define DEFAULT_OFFSET 0.00
@@ -11,7 +10,8 @@
 
 enum SensorParam {
     SENSOR_PARAM_SCALE,
-    SENSOR_PARAM_OFFSET
+    SENSOR_PARAM_OFFSET,
+    SENSOR_NUMPARAMS
 };
 
 class Sensor {
@@ -30,7 +30,7 @@ class Sensor {
         float reading();
         
         // rounded reading
-        long readingR();
+        long readingR() { return round(reading()); };
 
         // Returns true if necessary number of samples has been taken already
         bool ready() { return _ready; };
@@ -38,8 +38,8 @@ class Sensor {
         void setNumSamples( int num_samples = DEFAULT_NUM_SAMPLES ) { _num_samples = num_samples; };
         int getNumSamples() { return _num_samples; };
 
-        void setSensorParam(float value, SensorParam param);
-        float getSensorParam(SensorParam param);
+        void setParam(float value, SensorParam p) { _param[p] = value; };
+        float getParam(SensorParam p) { return _param[p]; };
 
     private:
         int _pin;
@@ -51,16 +51,16 @@ class Sensor {
         int *_readings;
 
         int _num_samples = DEFAULT_NUM_SAMPLES;
-        float _offset = DEFAULT_OFFSET;
-        float _scale = DEFAULT_SCALE;
+        float _param[SENSOR_NUMPARAMS];
 
 };
 
 class SensorManager {
     public:
         
-        SensorManager(HardwareSerial * dbg){
+        SensorManager( HardwareSerial * dbg, Settings * settings ) {
             _dbg = dbg;
+            _settings = settings;
         };
 
         void registerSensor(Sensor* sensor);
@@ -73,19 +73,19 @@ class SensorManager {
         int getNumSensors() { return _num_sensors; };
 
         // save sensor params to EEPROM
-        void saveSensorParams();
+        void saveParams();
         
         // load sensor params from EEPROM. If sensor params were not saved before, they are initialized in EEPROM
-        void loadSensorParams();
+        void loadParams();
 
     private:
         HardwareSerial * _dbg;
 
+        Settings * _settings;
+
         Sensor* _sensors[MAX_NUM_SENSORS];
         int _num_sensors = 0;
 
-        int loadInt(unsigned long addr);
-        float loadFloat(unsigned long addr);
 };
 
 #endif

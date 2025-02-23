@@ -35,9 +35,9 @@ enum ExecuteCommand {
     COMMAND_SHUTDOWN_CANCEL,
     COMMAND_SET_BRIGHTNESS,
     COMMAND_TOGGLE_DISPLAY,
-    COMMAND_READ_SENSOR,
-    COMMAND_TUNE_SENSOR,
-    COMMAND_SAVE_SENSORS
+    COMMAND_READ_PARAM,
+    COMMAND_TUNE_PARAM,
+    COMMAND_SAVE_PARAM
 };
 
 
@@ -109,11 +109,13 @@ class Voltronic {
         void setOutputFreqNom( int out_f_nom ) { _out_f_nom = out_f_nom; };
         int getOutputFreqNom() { return _out_f_nom; };
 
-        int getSensorPtr() { return _sensor_ptr; };
-        float getSensorParamValue() { return _sensor_value; };
-        int getSensorParam() { return _sensor_param; };
+        int getParamPtr() { return _param_ptr; };
+        float getParamValue() { return _param_value; };
+        int getParam() { return _param; };
 
         void printSensorParams(float offset, float scale, float value = 0);
+
+        void printChargerParams(float kp, float ki, float kd, float cv, float cc, int mode, float err, int output);
 
         void printPartModel();
         void printPrompt();
@@ -159,9 +161,9 @@ class Voltronic {
 
         int _brightness_lvl = DISPLAY_DEFAULT_BRIGHTNESS;
 
-        int _sensor_ptr = 0;
-        float _sensor_value = 0;
-        int _sensor_param = 0;
+        int _param_ptr = 0;
+        float _param_value = 0;
+        int _param = 0;
 
         int _ptr = 0;
 

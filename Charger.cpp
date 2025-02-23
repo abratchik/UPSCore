@@ -1,25 +1,31 @@
 #include "Charger.h"
 
 
-Charger::Charger(Sensor* current_sensor, Sensor* voltage_sensor, int cout_pin, int charging_pin) {
-    _cout_pin = cout_pin;
-    _charging_pin = charging_pin;
+Charger::Charger(Settings* settings, Sensor* current_sensor, Sensor* voltage_sensor) {
 
     set_current_sensor(current_sensor);
     set_voltage_sensor(voltage_sensor);
     _charging_mode = CHARGING_NOT_STARTED;
 
-    pinMode(_cout_pin, OUTPUT);
-    pinMode(_charging_pin, OUTPUT);  
+    pinMode(DEFAULT_CHARGER_PWM_OUT, OUTPUT);
+
+    _settings = settings;
+
+    k[CHARGING_KP] = 2.5;
+    k[CHARGING_KI] = 0.02;
+    k[CHARGING_KD] = 12.0; 
+    k[CHARGING_TEST] = 0;
 
     set_charging(false);       
 }
 
-void Charger::start(float current, float voltage) {
+void Charger::start(float current, float voltage, unsigned long ticks) {
     if(_charging) return;
 
     set_current(current);
     set_voltage(voltage);
+
+    last_ticks = ticks;
 
     set_charging(true);
 
@@ -29,22 +35,22 @@ void Charger::start(float current, float voltage) {
 void Charger::set_current(float current) {
     if(current <= 0.0F) {
         _charging_current = 0;
-        regulate();
+        _cout_regv = 0;
+        pwmSet10(_cout_regv);
+        _charging_mode = CHARGING_TARGET_NOT_SET;
+        set_charging(false);
     }
     _charging_current = current;
 }
 
-void Charger::regulate() {
-    float deviation;
-    int step = 1; 
-    float reading_c, reading_v;
+void Charger::regulate(unsigned long ticks) {
 
     if(!_charging) return;   
         
     
     if( _charging_current <= 0.0 || _charging_voltage <= 0.0 ) {
         _cout_regv = 0;
-        analogWrite(_cout_pin, _cout_regv);
+        pwmSet10(_cout_regv);
         _charging_mode = CHARGING_TARGET_NOT_SET;
         set_charging(false);
         return;                          
@@ -69,23 +75,21 @@ void Charger::regulate() {
     }    
 
     // for overvoltage protection, we start checking voltage first
-    reading_v = _voltage_sensor->reading();
+    float reading_v = _voltage_sensor->reading();
 
-    if(reading_v <= _min_charge_voltage) {
-        _charging_mode =  CHARGING_BATTERY_DEAD; // battery fully depleted, cannot charge
+    if(reading_v <= _min_battery_voltage) {
+        _charging_mode =  CHARGING_BATTERY_DEAD; // battery depleted below minimum, cannot charge
         set_charging(false);
         return;
     }
 
-    deviation = (float)( _charging_voltage - reading_v )/_charging_voltage;
+    float deviation = (float)( _charging_voltage - reading_v )/(_charging_voltage - _min_battery_voltage);
     
-    if(deviation < 0) {
-        _charging_mode = CHARGING_BY_CV;       // if voltage is over to threshold, switch to CV charging 
-    // } else if(deviation > 0 and int(_current_sensor->reading()) > _charging_current) {
-    //     _charging_mode = CHARGEBY_CC;       // if current is over the CC, switch to CC charging 
+    if(deviation < 0.2) {
+        _charging_mode = CHARGING_BY_CV;       // if voltage is over 80%, switch to CV charging 
     }
     
-    reading_c = _current_sensor->reading();
+    float reading_c = _current_sensor->reading();
 
     // if charging mode is CC, define the reading and deviation
     if(_charging_mode == CHARGING_BY_CC) {
@@ -93,36 +97,42 @@ void Charger::regulate() {
     }
     else if(_charging_mode == CHARGING_BY_CV) {
         // check if the charging is complete
-        if(reading_c <= _cutoff_current ) {
+        if(reading_c <= _cutoff_current && reading_c > 0.0F ) {
             _cout_regv = 0;
-            analogWrite(_cout_pin, _cout_regv);
+            pwmSet10(_cout_regv);
             _charging_mode = CHARGING_COMPLETE;
             set_charging(false);
             return ;                              
         }
         // check if current is over the CC, regulate current
-        else if(reading_c > (float)_charging_current)  {
-            deviation = ((float)_charging_current - reading_c)/(float)_charging_current;
+        else if(reading_c > _charging_current)  {
+            deviation = (_charging_current - reading_c)/_charging_current;
         }
     }
 
-    // calculate the step based on the deviation
-    step = exp(abs(deviation*100)* 0.01);
-    
-    _cout_regv += sgn(deviation) * step;
+    long elapsed_ticks = 1;
 
-    // Checking regulator threshold
+    // update the integrator component
+    deviation_sum += ( deviation * elapsed_ticks );
+
+    // calculate the regulator output
+    _cout_regv = round( k[CHARGING_KP] * deviation + 
+                        k[CHARGING_KI] * deviation_sum + 
+                        k[CHARGING_KD] * (deviation - last_deviation) / elapsed_ticks +
+                        k[CHARGING_TEST] );
+
+    // Applying regulator threshold
     if( _cout_regv >= MAXCOUT ) {
-        _cout_regv = MAXCOUT;
-        _charging_mode = CHARGING_MAX_HIT;                    
+        _cout_regv = MAXCOUT;                  
     }
     else if( _cout_regv <= 0 ) {
-        _cout_regv = 0;
-        _charging_mode = CHARGING_MIN_HIT;                
+        _cout_regv = 0;             
     }
 
-    analogWrite(_cout_pin, _cout_regv);
+    pwmSet10(_cout_regv);
 
+    last_deviation = deviation;
+    last_ticks = ticks;
     return;
 }
 
@@ -132,7 +142,55 @@ void Charger::stop() {
     set_current(0);
     
     _charging_mode = CHARGING_NOT_STARTED;
+
+    last_deviation = 0.0F;
+    last_ticks = 0;
     
     set_charging(false);
 
+}
+
+void Charger::loadParams() {
+    long addr = _settings->getAddr(SETTINGS_CHARGER);
+
+    int num_params = 0;
+    EEPROM.get(addr, num_params);
+
+    if( num_params != CHARGING_NUMPARAM ) {
+        saveParams();
+        return;
+    }
+
+    addr += sizeof(int);
+
+    float value;
+    for( int p = 0; p < CHARGING_NUMPARAM; p++ ) {
+        value = 0;
+        EEPROM.get(addr, value);
+        k[p] = value;
+        addr += sizeof(float);
+    }   
+
+    _settings->updateSize( SETTINGS_CHARGER, addr - _settings->getAddr(SETTINGS_CHARGER) );
+}
+
+void Charger::saveParams() {
+    long addr = _settings->getAddr(SETTINGS_CHARGER);
+
+    EEPROM.put( addr, CHARGING_NUMPARAM );
+    addr += sizeof(int);
+
+    for( int p = 0; p < CHARGING_NUMPARAM; p++ ) {
+        EEPROM.put( addr, k[p] );
+        addr += sizeof(float);
+    }
+
+    _settings->updateSize( SETTINGS_CHARGER, addr - _settings->getAddr(SETTINGS_CHARGER) );
+}
+
+void Charger::pwmSet10(int value)
+{
+   OCR1B = value;   
+   DDRB |= 1 << 6;  
+   TCCR1A |= 0x20;  
 }

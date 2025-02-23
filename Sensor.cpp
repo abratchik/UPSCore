@@ -5,8 +5,8 @@ Sensor::Sensor(int pin, float offset, float scale, int num_samples) {
     pinMode(pin, INPUT);
     _pin = pin;
     _num_samples = num_samples;
-    _offset = offset;
-    _scale = scale;
+    _param[SENSOR_PARAM_OFFSET] = offset;
+    _param[SENSOR_PARAM_SCALE] = scale;
     _readings = (int*)malloc(num_samples * sizeof(int));
     reset();
 }
@@ -44,25 +44,7 @@ void Sensor::reset() {
 
 float Sensor::reading() {
     if(_counter == 0) sample();
-    return  _average_reading * _scale   + _offset;
-}
-
-long Sensor::readingR() {
-    return round(reading());
-}
-
-void Sensor::setSensorParam(float value, SensorParam param) {
-    if(param == SENSOR_PARAM_OFFSET)
-        _offset = value;
-    else 
-        _scale = value;
-}
-
-float Sensor::getSensorParam(SensorParam param) {
-    if(param == SENSOR_PARAM_OFFSET)
-        return _offset;
-    else 
-        return _scale;
+    return  _average_reading * _param[SENSOR_PARAM_SCALE]   + _param[SENSOR_PARAM_OFFSET];
 }
 
 void SensorManager::registerSensor(Sensor* sensor) {
@@ -86,50 +68,46 @@ Sensor* SensorManager::get(int ptr) {
     return _sensors[ptr];
 }
 
-void SensorManager::saveSensorParams() {
-    unsigned long addr = 0;
+void SensorManager::saveParams() {
+    long addr = _settings->getAddr(SETTINGS_SENSORS);
+
     EEPROM.put(addr, _num_sensors);
     addr += sizeof(int);
+
     for(int i=0; i < _num_sensors; i++ ) {
-        EEPROM.put(addr, _sensors[i]->getSensorParam(SENSOR_PARAM_SCALE));
-        addr += sizeof(float);
-        EEPROM.put(addr, _sensors[i]->getSensorParam(SENSOR_PARAM_OFFSET));
-        addr += sizeof(float);
+        for( int p = 0; p < SENSOR_NUMPARAMS; p++ ) {
+            EEPROM.put(addr, _sensors[i]->getParam(p));
+            addr += sizeof(float);
+        }
     }
+
+    _settings->updateSize( SETTINGS_SENSORS, addr - _settings->getAddr(SETTINGS_SENSORS) );
 }
 
-void SensorManager::loadSensorParams() {
-    unsigned long addr = 0;
+void SensorManager::loadParams() {
 
-    if( loadInt(addr) != _num_sensors) {
-        saveSensorParams();
+    long addr = _settings->getAddr(SETTINGS_SENSORS);
+
+    int num_sensors = 0;
+    EEPROM.get(addr, num_sensors);
+
+    if( num_sensors != _num_sensors) {
+        saveParams();
         return;
     }
 
     addr += sizeof(int);
 
+    float value;
     for(int i=0; i < _num_sensors; i++ ) {
-
-        _sensors[i]->setSensorParam(loadFloat(addr), SENSOR_PARAM_SCALE);
-        addr += sizeof(float);
-        _sensors[i]->setSensorParam(loadFloat(addr), SENSOR_PARAM_OFFSET);
-        addr += sizeof(float);
+        for( int p = 0; p < SENSOR_NUMPARAMS; p++ ) {
+            value = 0;
+            EEPROM.get(addr, value);
+            _sensors[i]->setParam( value, p);
+            addr += sizeof(float);
+        }   
     }
 
-}
+    _settings->updateSize( SETTINGS_SENSORS, addr - _settings->getAddr(SETTINGS_SENSORS) );
 
-int SensorManager::loadInt(unsigned long addr) {
-    int result = 0;
-
-    EEPROM.get(addr, result);
-
-    return result;
-}
-
-float SensorManager::loadFloat(unsigned long addr) {
-    float result = 0.0F;
-
-    EEPROM.get(addr, result);
-
-    return result;
 }

@@ -190,31 +190,32 @@ ExecuteCommand Voltronic::executeCommand() {
                         break;
 
                     case 'V':
-                        // undocumented case - allows to tune or read sensor params
+                        // undocumented case - allows to tune or read sensors and charger params
                         // format: VNPMVKKKKKKKKKKKKKKKKK, where
                         // N - id of the sensor (0..4)
                         // M - can be 0 (scale) or 1 (offset). PM can be omitted - then sensor params are printed
                         // K - float value to be set (17 symbols). Can be omitted
                         
-                        _sensor_ptr = (int) parseFloat(1,1);
+                        _param_ptr = (int) parseFloat(1,1);
 
                         if( _buf[2] == 'P' ) {
-                            _sensor_param = (int) parseFloat(3,1);
+                            _param = (int) parseFloat(3,1);
 
                             if( _buf[4] == 'V' ) {
-                                _sensor_value = parseFloat(5,17);
-                                command_status = COMMAND_TUNE_SENSOR;
+                                _param_value = parseFloat(5,17);
+                                command_status = COMMAND_TUNE_PARAM;
                             }
                             else 
-                                command_status = COMMAND_READ_SENSOR;
+                                command_status = COMMAND_READ_PARAM;
                         }
                         else
-                            command_status = COMMAND_READ_SENSOR;
+                            command_status = COMMAND_READ_PARAM;
+
                         break;
 
                     case 'W':
                         // undocumented case - save sensor params to EEPROM
-                        command_status = COMMAND_SAVE_SENSORS;
+                        command_status = COMMAND_SAVE_PARAM;
                         break;
 
                     default:
@@ -324,13 +325,35 @@ void Voltronic::printRatedInfo() {
 
 void Voltronic::printSensorParams( float offset, float scale,  float value = 0) {
     _stream->write('(');
-    _stream->print(_sensor_ptr);
+    _stream->print(_param_ptr);
     _stream->write(' ');
     _stream->print(offset,5);
     _stream->write(' ');
     _stream->print(scale,5);
     _stream->write(' ');
     _stream->print(value);
+    writeEOL();
+}
+
+void Voltronic::printChargerParams(float kp, float ki, float kd, float cv, float cc, int mode, float err, int output) {
+    _stream->write('(');
+    _stream->print(_param_ptr);
+    _stream->write(' ');
+    _stream->print(kp);
+    _stream->write(' ');
+    _stream->print(ki);
+    _stream->write(' ');
+    _stream->print(kd);
+    _stream->write(' ');
+    _stream->print(cc);
+    _stream->write(' ');
+    _stream->print(cv);
+    _stream->write(' ');
+    _stream->print(mode);
+    _stream->write(' ');
+    _stream->print(err);
+    _stream->write(' ');
+    _stream->print(output);
     writeEOL();
 }
 

@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "Settings.h"
 
 #include "SimpleTimer.h"
 
@@ -11,6 +12,8 @@
 
 #include "Voltronic.h"
 
+Settings settings;
+
 SimpleTimerManager timer_manager(&Serial);
 
 //init sensors
@@ -20,10 +23,10 @@ Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, TIMER_ONE_SEC );  // AC output cu
 Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, TIMER_ONE_SEC );   // Battery voltage 
 Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, TIMER_ONE_SEC );    // Battery current +/- 29.9A
 
-SensorManager sensor_manager(&Serial);
+SensorManager sensor_manager(&Serial, &settings);
 
 // init the charger on DEFAULT_CHARGER_PWM_OUT pin
-Charger charger(&c_bat, &v_bat);
+Charger charger(&settings, &c_bat, &v_bat);
 void start_charging();
 SimpleTimer* delayed_charge = nullptr;
 
@@ -64,7 +67,8 @@ void setup() {
   sensor_manager.registerSensor(&c_bat);
   
   // load params from EEPROM
-  sensor_manager.loadSensorParams();
+  sensor_manager.loadParams();
+  charger.loadParams();
 
   // create timers
   delayed_charge = timer_manager.create( 0,TIMER_ONE_SEC,false,nullptr,start_charging);
@@ -180,7 +184,7 @@ void loop() {
           
         }
 
-        charger.regulate();
+        charger.regulate(timer_manager.getTicks());
 
         break;
 
@@ -286,29 +290,51 @@ void loop() {
           display.toggle();
           break;
         
-        case COMMAND_READ_SENSOR:
-          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() ) {
-            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_OFFSET), 
-                                              sensor->getSensorParam(SENSOR_PARAM_SCALE),
+        case COMMAND_READ_PARAM:
+          if( serial_protocol.getParamPtr() < sensor_manager.getNumSensors() ) {
+            Sensor* sensor = sensor_manager.get(serial_protocol.getParamPtr());
+            serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
+                                              sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
+          }
+          else if(serial_protocol.getParamPtr() == sensor_manager.getNumSensors()) {
+            serial_protocol.printChargerParams(charger.getParam(CHARGING_KP),
+                                              charger.getParam(CHARGING_KI),
+                                              charger.getParam(CHARGING_KD),
+                                              charger.get_voltage(),
+                                              charger.get_current(),
+                                              charger.get_mode(),
+                                              charger.get_last_deviation(),
+                                              charger.get_output());
           }
           break;
 
-        case COMMAND_TUNE_SENSOR:
-          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() && 
-              serial_protocol.getSensorParam() < 2 ) {
+        case COMMAND_TUNE_PARAM:
+          if( serial_protocol.getParamPtr() < sensor_manager.getNumSensors() && 
+              serial_protocol.getParam() < 2 ) {
 
-            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-            sensor->setSensorParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
-            serial_protocol.printSensorParams(sensor->getSensorParam(SENSOR_PARAM_OFFSET), 
-                                              sensor->getSensorParam(SENSOR_PARAM_SCALE),
+            Sensor* sensor = sensor_manager.get(serial_protocol.getParamPtr());
+            sensor->setParam(serial_protocol.getParamValue(), serial_protocol.getParam());
+            serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
+                                              sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
+          }
+          else if(serial_protocol.getParamPtr() == sensor_manager.getNumSensors()) {
+            charger.setParam(serial_protocol.getParamValue(), serial_protocol.getParam());
+            serial_protocol.printChargerParams(charger.getParam(CHARGING_KP),
+                                               charger.getParam(CHARGING_KI),
+                                               charger.getParam(CHARGING_KD),
+                                               charger.get_voltage(),
+                                               charger.get_current(),
+                                               charger.get_mode(),
+                                               charger.get_last_deviation(),
+                                               charger.get_output());
           }
           break;
         
-        case COMMAND_SAVE_SENSORS:
-          sensor_manager.saveSensorParams();
+        case COMMAND_SAVE_PARAM:
+          sensor_manager.saveParams();
+          charger.saveParams();
           break;
 
         default:
@@ -361,9 +387,9 @@ void beep_off() {
 }
 
 void start_charging() {
-  charger.set_min_charge_voltage(INTERACTIVE_MIN_V_BAT);        
-  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.01F);    // cutoff current = 2% of AH
-  charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT - 0.2 * INTERACTIVE_V_BAT_DELTA);
+  charger.set_min_battery_voltage(INTERACTIVE_MIN_V_BAT);        
+  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.02F);    // cutoff current = 2% of AH
+  charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT, timer_manager.getTicks());
 }
 
 // void print_readings(RegulateStatus status) {
