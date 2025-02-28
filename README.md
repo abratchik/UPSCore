@@ -42,7 +42,7 @@ The solution supports most of the Voltronic commands. Some extensions are added 
 <tr><td>Q</td><td>Toggle the UPS buzzer.</td></tr>
 <tr><td>QS</td><td>Query UPS for status (short) (old)</td></tr>
 <tr><td>QMD</td><td>Query UPS for rated information #1</td></tr>
-<tr><td>QRI (or F)</td><td>Query UPS for rated information #2</td></tr>
+<tr><td>QRI</td><td>Query UPS for rated information #2</td></tr>
 <tr><td>QMF</td><td>Query UPS for manufacturer</td></tr>
 <tr><td>QBV</td><td>Query UPS for battery information</td></tr>
 <tr><td>D</td><td>Toggle display on or off</td></tr>

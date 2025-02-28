@@ -88,16 +88,16 @@ class Charger {
         Settings * _settings;
 
         // charging current value (to be compared with sensor)
-        float _charging_current = 0;      
+        float _charging_current;      
 
         // charging voltage value (to be compared with sensor)
-        float _charging_voltage = 0;   
+        float _charging_voltage;   
 
         // Integrated error
-        float deviation_sum = 0;  
+        float deviation_sum;  
 
         // Last deviation for calculating derivative
-        float last_deviation = 0;     
+        float last_deviation;     
 
         // the ticks on the latest regulate() or start() call
         unsigned long last_ticks;     
@@ -108,20 +108,22 @@ class Charger {
         ChargingStatus _charging_mode;     
         
         // regulator value (0-1023)  
-        int _cout_regv = 0;                     
+        int _cout_regv;                     
 
-        float _min_battery_voltage = 0;
+        float _min_battery_voltage;
 
-        float _cutoff_current = 0;
+        float _cutoff_current;
 
         Sensor* _current_sensor = NULL;
         Sensor* _voltage_sensor = NULL;
 
-        bool _charging = false;
+        bool _charging;
 
         void set_charging(bool charging) {
             _charging = charging;
             deviation_sum = last_deviation = 0;
+            _cout_regv = 0;
+            pwmSet10(0);  
         };
 
         // analogWrite replacement for FastPWM 10-bit mode on pin 10

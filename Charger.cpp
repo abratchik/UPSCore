@@ -35,8 +35,6 @@ void Charger::start(float current, float voltage, unsigned long ticks) {
 void Charger::set_current(float current) {
     if(current <= 0.0F) {
         _charging_current = 0;
-        _cout_regv = 0;
-        pwmSet10(_cout_regv);
         _charging_mode = CHARGING_TARGET_NOT_SET;
         set_charging(false);
     }
@@ -46,11 +44,13 @@ void Charger::set_current(float current) {
 void Charger::regulate(unsigned long ticks) {
 
     if(!_charging) return;   
-        
+
+    if( !(_charging_mode == CHARGING_BY_CC || _charging_mode == CHARGING_BY_CC) )  {
+        set_charging(false);
+        return;
+    }
     
     if( _charging_current <= 0.0 || _charging_voltage <= 0.0 ) {
-        _cout_regv = 0;
-        pwmSet10(_cout_regv);
         _charging_mode = CHARGING_TARGET_NOT_SET;
         set_charging(false);
         return;                          
@@ -74,8 +74,9 @@ void Charger::regulate(unsigned long ticks) {
         return;
     }    
 
-    // for overvoltage protection, we start checking voltage first
+    // read sensors
     float reading_v = _voltage_sensor->reading();
+    float reading_c = _current_sensor->reading();
 
     if(reading_v <= _min_battery_voltage) {
         _charging_mode =  CHARGING_BATTERY_DEAD; // battery depleted below minimum, cannot charge
@@ -83,37 +84,48 @@ void Charger::regulate(unsigned long ticks) {
         return;
     }
 
-    float deviation = (float)( _charging_voltage - reading_v )/(_charging_voltage - _min_battery_voltage);
-    
-    if(deviation < 0.2) {
-        _charging_mode = CHARGING_BY_CV;       // if voltage is over 80%, switch to CV charging 
+    // if voltage is reaching target, switch to CV charging 
+    float charge_to_full = (float)( _charging_voltage - reading_v )/(_charging_voltage - _min_battery_voltage);    
+    if(charge_to_full < 0 ) {
+        _charging_mode = CHARGING_BY_CV;       
     }
     
-    float reading_c = _current_sensor->reading();
+    float deviation = 0;
 
-    // if charging mode is CC, define the reading and deviation
     if(_charging_mode == CHARGING_BY_CC) {
         deviation = (_charging_current - reading_c)/_charging_current;
     }
-    else if(_charging_mode == CHARGING_BY_CV) {
+    else {
+        // charging mode is CHARGING_BY_CV
+        
+        // check if current is over the CC, continue regulate current
+        // if(reading_c > _charging_current)  {
+        //    deviation = (_charging_current - reading_c)/_charging_current;
+        // }
+
         // check if the charging is complete
         if(reading_c <= _cutoff_current && reading_c > 0.0F ) {
-            _cout_regv = 0;
-            pwmSet10(_cout_regv);
             _charging_mode = CHARGING_COMPLETE;
             set_charging(false);
             return ;                              
         }
-        // check if current is over the CC, regulate current
-        else if(reading_c > _charging_current)  {
-            deviation = (_charging_current - reading_c)/_charging_current;
-        }
+        
+        deviation = ( _charging_voltage - reading_v )/_charging_voltage;
+
     }
 
-    long elapsed_ticks = 1;
+    long elapsed_ticks = 1; // TODO: switch to actual time?
 
     // update the integrator component
     deviation_sum += ( deviation * elapsed_ticks );
+
+    // Applying threshold to integrator 
+    if(deviation_sum < 0) {
+        deviation_sum = 0;
+    }
+    else if (deviation_sum > MAXCOUT ) {
+        deviation_sum = MAXCOUT;
+    }
 
     // calculate the regulator output
     _cout_regv = round( k[CHARGING_KP] * deviation + 

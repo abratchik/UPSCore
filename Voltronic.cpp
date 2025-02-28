@@ -117,10 +117,10 @@ ExecuteCommand Voltronic::executeCommand() {
                         }
                         break;
 
-                    case 'F':
-                        // Query UPS for rated information #4 (old)
-                        printRatedInfo();
-                        break;
+                    // Query UPS for rated information #4 (old)
+                    // case 'F':
+                    //    printRatedInfo();
+                    //    break;
                     
                     case 'D':
                         // 'undocumented' case - change the display brightness
