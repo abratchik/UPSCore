@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "avr/wdt.h"
 #include "Settings.h"
 
 #include "SimpleTimer.h"
@@ -55,6 +56,8 @@ void output_power_off();
 SimpleTimer* output_power_timer =  nullptr;
 
 void setup() {
+  wdt_disable();
+
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
   
   serial_protocol.printPartModel();
@@ -102,6 +105,8 @@ void setup() {
 
   serial_protocol.printPrompt();
   serial_protocol.writeEOL();
+
+  wdt_enable(WDTO_2S);
 }
 
 
@@ -343,6 +348,8 @@ void loop() {
     } 
 
   }
+
+  wdt_reset();
 
 }
 

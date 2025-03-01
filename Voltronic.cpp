@@ -140,6 +140,11 @@ ExecuteCommand Voltronic::executeCommand() {
                         }
                         
                         break;
+                    
+                    case 'R':
+                        // trigger watchdog
+                        while(true);
+                        break;
 
                     case 'T':
                         command_status = COMMAND_SELF_TEST;
