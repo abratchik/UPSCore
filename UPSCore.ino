@@ -57,6 +57,7 @@ SimpleTimer* output_power_timer =  nullptr;
 
 void setup() {
   wdt_disable();
+  pinMode(RESET_PIN, INPUT_PULLUP);
 
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
   

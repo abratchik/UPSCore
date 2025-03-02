@@ -142,8 +142,9 @@ ExecuteCommand Voltronic::executeCommand() {
                         break;
                     
                     case 'R':
-                        // trigger watchdog
-                        while(true);
+                        // hard reset
+                        pinMode(RESET_PIN, OUTPUT);
+                        digitalWrite(RESET_PIN, LOW);
                         break;
 
                     case 'T':
