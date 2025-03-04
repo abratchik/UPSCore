@@ -39,8 +39,7 @@ enum ChargerPIDParam {
 class Charger {
     public:
 
-        //Only 16-bit timer can be used
-        Charger(Settings * settings, Sensor* current_sensor, Sensor* voltage_sensor);   
+        Charger(HardwareSerial* stream, Settings * settings, Sensor* current_sensor, Sensor* voltage_sensor);   
 
         void set_current_sensor(Sensor* current_sensor) {_current_sensor = current_sensor;};
         void set_voltage_sensor(Sensor* voltage_sensor) {_voltage_sensor = voltage_sensor;};
@@ -58,7 +57,7 @@ class Charger {
         void set_min_battery_voltage(float min_battery_voltage) {_min_battery_voltage = min_battery_voltage; }; 
         void set_cutoff_current(float cutoff_current) { _cutoff_current = cutoff_current; };
 
-        float get_last_deviation() { return last_deviation; };
+        float get_last_deviation() { return _last_deviation; };
         int get_output() { return _cout_regv; };
 
         // Increase or decrease cout_regv depending on the sensor reading
@@ -84,6 +83,7 @@ class Charger {
         void saveParams();
 
     private:
+        HardwareSerial* _stream;
 
         Settings * _settings;
 
@@ -94,10 +94,10 @@ class Charger {
         float _charging_voltage;   
 
         // Integrated error
-        float deviation_sum;  
+        float _deviation_sum;  
 
         // Last deviation for calculating derivative
-        float last_deviation;     
+        float _last_deviation;     
 
         // the ticks on the latest regulate() or start() call
         unsigned long last_ticks;     
@@ -121,7 +121,7 @@ class Charger {
 
         void set_charging(bool charging) {
             _charging = charging;
-            deviation_sum = last_deviation = 0;
+            _deviation_sum = _last_deviation = 0;
             _cout_regv = 0;
             pwmSet10(0);  
         };

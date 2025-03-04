@@ -27,7 +27,7 @@ Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, TIMER_ONE_SEC );    // Battery 
 SensorManager sensor_manager(&Serial, &settings);
 
 // init the charger on DEFAULT_CHARGER_PWM_OUT pin
-Charger charger(&settings, &c_bat, &v_bat);
+Charger charger(&Serial, &settings, &c_bat, &v_bat);
 void start_charging();
 SimpleTimer* delayed_charge = nullptr;
 
@@ -90,7 +90,7 @@ void setup() {
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
 
-  // Timer 1 used for charging 
+  // Timer 1 used for charging (15.6KHz)
   TCCR1A = _BV(WGM10) | _BV(WGM11);  // 10bit
   TCCR1B = _BV(WGM12) | _BV(CS10);   // x1 fast pwm
 
@@ -181,7 +181,7 @@ void loop() {
 
             case CHARGING_COMPLETE:
               charger.set_mode(CHARGING_INIT);
-              delayed_charge->start( 0, 60 * TIMER_ONE_SEC );
+              delayed_charge->start( 0, 3 * TIMER_ONE_SEC );
               break;
 
             default:
@@ -309,6 +309,9 @@ void loop() {
                                               charger.getParam(CHARGING_KD),
                                               charger.get_voltage(),
                                               charger.get_current(),
+                                              v_bat.reading(),
+                                              c_bat.reading(),
+                                              charger.is_charging(),
                                               charger.get_mode(),
                                               charger.get_last_deviation(),
                                               charger.get_output());
@@ -332,6 +335,9 @@ void loop() {
                                                charger.getParam(CHARGING_KD),
                                                charger.get_voltage(),
                                                charger.get_current(),
+                                               v_bat.reading(),
+                                               c_bat.reading(),
+                                               charger.is_charging(),
                                                charger.get_mode(),
                                                charger.get_last_deviation(),
                                                charger.get_output());
@@ -396,8 +402,8 @@ void beep_off() {
 
 void start_charging() {
   charger.set_min_battery_voltage(INTERACTIVE_MIN_V_BAT);        
-  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.02F);    // cutoff current = 2% of AH
-  charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT, timer_manager.getTicks());
+  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.005F);    
+  charger.start( INTERACTIVE_BATTERY_AH * 0.05F, INTERACTIVE_MAX_V_BAT, timer_manager.getTicks());
 }
 
 // void print_readings(RegulateStatus status) {

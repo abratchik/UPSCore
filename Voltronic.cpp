@@ -341,7 +341,7 @@ void Voltronic::printSensorParams( float offset, float scale,  float value = 0) 
     writeEOL();
 }
 
-void Voltronic::printChargerParams(float kp, float ki, float kd, float cv, float cc, int mode, float err, int output) {
+void Voltronic::printChargerParams(float kp, float ki, float kd, float cv, float cc, float v, float c, bool chrg, int mode, float err, int output) {
     _stream->write('(');
     _stream->print(_param_ptr);
     _stream->write(' ');
@@ -354,6 +354,12 @@ void Voltronic::printChargerParams(float kp, float ki, float kd, float cv, float
     _stream->print(cc);
     _stream->write(' ');
     _stream->print(cv);
+    _stream->write(' ');
+    _stream->print(c);
+    _stream->write(' ');
+    _stream->print(v);
+    _stream->write(' ');    
+    _stream->print(chrg);
     _stream->write(' ');
     _stream->print(mode);
     _stream->write(' ');
