@@ -157,9 +157,7 @@ void loop() {
         // stop inverter (will set batteryMode to false)
         if(lineups.isBatteryMode()) {
           lineups.toggleInverter(false);
-          
           beeper_timer->stop();
-
         }
         
         // connect to the mains
@@ -167,27 +165,13 @@ void loop() {
 
         // connect the load
         if( !lineups.readStatus(OUTPUT_CONNECTED) ) lineups.toggleOutput(true);
-
-        // Serial.print(c_bat.reading());Serial.print(",");
-        // Serial.println(charger.get_mode());
         
-        if( !charger.is_charging() ) {
-          switch( charger.get_mode() ) {
+        if( !charger.is_charging() && 
+            ( charger.get_mode() == CHARGING_NOT_STARTED || 
+              charger.get_mode() == CHARGING_COMPLETE ) ) {
 
-            case CHARGING_NOT_STARTED:
-              charger.set_mode(CHARGING_INIT);
-              delayed_charge->start( 0, 3 * TIMER_ONE_SEC );
-              break;
-
-            case CHARGING_COMPLETE:
-              charger.set_mode(CHARGING_INIT);
-              delayed_charge->start( 0, 3 * TIMER_ONE_SEC );
-              break;
-
-            default:
-              break;
-          }
-          
+          charger.set_mode(CHARGING_INIT);
+          delayed_charge->start( 0, 3 * TIMER_ONE_SEC );          
         }
 
         charger.regulate(timer_manager.getTicks());
@@ -402,8 +386,8 @@ void beep_off() {
 
 void start_charging() {
   charger.set_min_battery_voltage(INTERACTIVE_MIN_V_BAT);        
-  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.005F);    
-  charger.start( INTERACTIVE_BATTERY_AH * 0.05F, INTERACTIVE_MAX_V_BAT, timer_manager.getTicks());
+  charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.02F);
+  charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT, timer_manager.getTicks());
 }
 
 // void print_readings(RegulateStatus status) {

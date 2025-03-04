@@ -53,7 +53,7 @@ void Charger::regulate(unsigned long ticks) {
         return;
     }
     
-    if( _charging_current <= 0.0 || _charging_voltage <= 0.0 ) {
+    if( _charging_current <= _cutoff_current || _charging_voltage <= 0.0 ) {
         _charging_mode = CHARGING_TARGET_NOT_SET;
         set_charging(false);
         return;                          
@@ -91,8 +91,6 @@ void Charger::regulate(unsigned long ticks) {
     float charge_to_full = (float)( _charging_voltage - reading_v )/(_charging_voltage - _min_battery_voltage);    
     if(charge_to_full < 0 && _charging_mode == CHARGING_BY_CC ) {
         _charging_mode = CHARGING_BY_CV;    
-        // _deviation_sum = 0.0F;   
-        // _last_deviation = 0.0F;
     }
     
     float deviation = 0.0F;
@@ -101,8 +99,16 @@ void Charger::regulate(unsigned long ticks) {
         deviation = (_charging_current - reading_c)/_charging_current;
     }
     else if( _charging_mode == CHARGING_BY_CV ) {
+        
+        // check if the charging is complete
+        if( reading_c <= _cutoff_current ) {
+            _charging_mode = CHARGING_COMPLETE;
+            set_charging(false);   
+            return;                       
+        }
+
         deviation = ( _charging_voltage - reading_v )/_charging_voltage;
-        // _stream->println(deviation);
+
     }
 
     long elapsed_ticks = 1; // TODO: switch to actual time?
@@ -137,11 +143,6 @@ void Charger::regulate(unsigned long ticks) {
     _last_deviation = deviation;
     last_ticks = ticks;
 
-    // check if the charging is complete
-    // if(reading_c <= _cutoff_current && reading_c >= 0) {
-    //    _charging_mode = CHARGING_COMPLETE;
-    //    set_charging(false);                          
-    // }
     return;
 }
 
