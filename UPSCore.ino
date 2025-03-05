@@ -199,9 +199,9 @@ void loop() {
           self_test->stop();
           charger.stop();
 
-          if( serial_protocol.getRestoreMin() > 0.0 ) {
+          if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 ) {
             output_power_timer->setOnFinish( output_power_on );
-            output_power_timer->start( 0, serial_protocol.getRestoreMin() * 60 * TIMER_ONE_SEC );
+            output_power_timer->start( 0, serial_protocol.getParam(PARAM_RESTORE_MIN) * 60 * TIMER_ONE_SEC );
           }
         }
 
@@ -214,21 +214,19 @@ void loop() {
 
     if( serial_protocol.process() == '\r' ) {
 
-      serial_protocol.setInputVoltage(vac_in.reading());
-      serial_protocol.setInputFaultVoltage(lineups.getLastFaultInputVoltage());
-      serial_protocol.setOutputVoltage(vac_out.reading());
-      serial_protocol.setLoadLevel( (int) (ac_out.reading() * 100 / INTERACTIVE_MAX_AC_OUT) );
-      serial_protocol.setBatteryLevel((int) (lineups.getBatteryLevel() * 100) );
+      serial_protocol.setParam(PARAM_INPUT_VAC, vac_in.reading());
+      serial_protocol.setParam(PARAM_INPUT_FAULT_VAC,lineups.getLastFaultInputVoltage());
+      serial_protocol.setParam(PARAM_OUTPUT_VAC, vac_out.reading());
+      serial_protocol.setParam(PARAM_OUTPUT_LOAD_LEVEL, ac_out.reading() / INTERACTIVE_MAX_AC_OUT );
+      serial_protocol.setParam(PARAM_BATTERY_LEVEL, lineups.getBatteryLevel() );
 
       //TODO: add estimation of remaining time here
-      //if(lineups.isBatteryMode())
-      //  serial_protocol.setRemainingMin(0);
-      // else
-      
-      serial_protocol.setRemainingMin(0);
 
-      serial_protocol.setBatteryVoltage(v_bat.reading());
-      serial_protocol.setInternalTemp(25.0); //TODO: replace with sensor reading
+      
+      serial_protocol.setParam(PARAM_REMAINING_MIN,0);
+
+      serial_protocol.setParam(PARAM_BATTERY_VDC, v_bat.reading());
+      serial_protocol.setParam(PARAM_INTERNAL_TEMP, 25.0); //TODO: replace with sensor reading
       serial_protocol.setStatus(lowByte(lineups.getStatus()));
 
       ExecuteCommand exec_command = serial_protocol.executeCommand();
@@ -239,19 +237,19 @@ void loop() {
           break;
         case COMMAND_SELF_TEST:
           if(!lineups.isBatteryMode() && lineups.getBatteryLevel() >= SELF_TEST_MIN_BAT_LVL && !self_test->isEnabled()) {
-            self_test->start(0, serial_protocol.getSelftestMin() * 60 * TIMER_ONE_SEC );
+            self_test->start(0, serial_protocol.getParam(PARAM_SELFTEST_MIN) * 60 * TIMER_ONE_SEC );
           }
           break;
         case COMMAND_SELF_TEST_CANCEL:
           self_test->stop();
           break;
         case COMMAND_SHUTDOWN:
-          if( serial_protocol.getShutdownMin() == 0.0F ) {
+          if( serial_protocol.getParam(PARAM_SHUTDOWN_MIN) == 0.0F ) {
             output_power_off();
           }
           else if(! output_power_timer->isEnabled() && !output_power_timer->isActive() ) {
             output_power_timer->setOnFinish( output_power_off );
-            output_power_timer->start( 0, (int) ( serial_protocol.getShutdownMin() * 60 * TIMER_ONE_SEC ) );
+            output_power_timer->start( 0, (int) ( serial_protocol.getParam(PARAM_SHUTDOWN_MIN) * 60 * TIMER_ONE_SEC ) );
           }
           break;
         case COMMAND_SHUTDOWN_CANCEL:
@@ -273,21 +271,21 @@ void loop() {
           break;
 
         case COMMAND_SET_BRIGHTNESS:
-          display.setupDisplay( true, serial_protocol.getBrightnessLevel() );
+          display.setupDisplay( true, (int)serial_protocol.getParam(PARAM_DISPLAY_BRIGHTNESS_LEVEL) );
           break;
         
         case COMMAND_TOGGLE_DISPLAY:
           display.toggle();
           break;
         
-        case COMMAND_READ_PARAM:
-          if( serial_protocol.getParamPtr() < sensor_manager.getNumSensors() ) {
-            Sensor* sensor = sensor_manager.get(serial_protocol.getParamPtr());
+        case COMMAND_READ_SENSOR:
+          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() ) {
+            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
             serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
                                               sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
           }
-          else if(serial_protocol.getParamPtr() == sensor_manager.getNumSensors()) {
+          else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
             serial_protocol.printChargerParams(charger.getParam(CHARGING_KP),
                                               charger.getParam(CHARGING_KI),
                                               charger.getParam(CHARGING_KD),
@@ -302,18 +300,18 @@ void loop() {
           }
           break;
 
-        case COMMAND_TUNE_PARAM:
-          if( serial_protocol.getParamPtr() < sensor_manager.getNumSensors() && 
-              serial_protocol.getParam() < 2 ) {
+        case COMMAND_TUNE_SENSOR:
+          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() && 
+              serial_protocol.getSensorParam() < 2 ) {
 
-            Sensor* sensor = sensor_manager.get(serial_protocol.getParamPtr());
-            sensor->setParam(serial_protocol.getParamValue(), serial_protocol.getParam());
+            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
+            sensor->setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
             serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
                                               sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
           }
-          else if(serial_protocol.getParamPtr() == sensor_manager.getNumSensors()) {
-            charger.setParam(serial_protocol.getParamValue(), serial_protocol.getParam());
+          else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
+            charger.setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
             serial_protocol.printChargerParams(charger.getParam(CHARGING_KP),
                                                charger.getParam(CHARGING_KI),
                                                charger.getParam(CHARGING_KD),
@@ -328,7 +326,7 @@ void loop() {
           }
           break;
         
-        case COMMAND_SAVE_PARAM:
+        case COMMAND_SAVE_SENSORS:
           sensor_manager.saveParams();
           charger.saveParams();
           break;
@@ -390,15 +388,6 @@ void start_charging() {
   charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT, timer_manager.getTicks());
 }
 
-// void print_readings(RegulateStatus status) {
-//     Serial.print(status);Serial.print(",");
-//     Serial.print(vac_in.reading());Serial.print(",");
-//     Serial.print(vac_out.reading());Serial.print(",");
-//     Serial.print(ac_out.reading());Serial.print(",");
-//     Serial.print(v_bat.reading());Serial.print(",");
-//     Serial.println(lineups.getStatus(), BIN);
-// }
-
 void start_self_test() {
   lineups.setSelfTestMode(true);
 }
@@ -408,12 +397,10 @@ void stop_self_test() {
 }
 
 void output_power_off() {
-  // Serial.println("Output power off");
   lineups.setShutdownMode(true);
 }
 
 void output_power_on() {
-  // Serial.println("Output power on");
   lineups.setShutdownMode(false);
 }
 

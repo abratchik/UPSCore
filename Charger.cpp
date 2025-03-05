@@ -111,18 +111,10 @@ void Charger::regulate(unsigned long ticks) {
 
     }
 
-    long elapsed_ticks = 1; // TODO: switch to actual time?
+    long elapsed_ticks = 1; // @todo: switch to actual time?
 
     // update the integrator component
     _deviation_sum += ( deviation * elapsed_ticks );
-
-    // Applying threshold to integrator 
-    // if(_deviation_sum < 0) {
-    //     _deviation_sum = 0;
-    // }
-    // else if (_deviation_sum > MAXCOUT ) {
-    //    _deviation_sum = MAXCOUT;
-    // }
 
     // calculate the regulator output
     _cout_regv = round( k[CHARGING_KP] * deviation + 
