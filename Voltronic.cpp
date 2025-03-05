@@ -54,6 +54,7 @@ ExecuteCommand Voltronic::executeCommand() {
             case 'Q':
                 if(_buf[1] == 'S') {
 
+                    // universal but slower method 
                     // printParam("(%4.1f %4.1f %4.1f %3i %3.1f %3.1f %3.1f %b\n",
                     //     _param[PARAM_INPUT_VAC],
                     //     _param[PARAM_INPUT_FAULT_VAC],
@@ -380,7 +381,7 @@ void Voltronic::printSensorParams( float offset, float scale,  float value = 0) 
 
 void Voltronic::printChargerParams(float kp, float ki, float kd, float cv, float cc, float v, float c, bool chrg, int mode, float err, int output) {
     _stream->write('(');
-    _stream->print(_param_ptr);
+    _stream->print(_sensor_ptr);
     _stream->write(' ');
     _stream->print(kp);
     _stream->write(' ');

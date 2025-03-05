@@ -22,10 +22,10 @@ Interactive::Interactive( Sensor *vac_in, Sensor *vac_out, Sensor *ac_out, Senso
 
 RegulateStatus Interactive::regulate() {
     
-    _battery_level = (_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA ;
+    _battery_level = max(min((_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA, 1.0F), 0.0F) ;
     writeStatus(SELF_TEST, _selfTestMode);
     writeStatus(SHUTDOWN_ACTIVE, _shutdownMode);
-    writeStatus(BATTERY_DEAD, _battery_level < 0 );
+    writeStatus(BATTERY_DEAD, _v_bat->reading() < INTERACTIVE_MIN_V_BAT );
 
     bool self_test = readStatus(SELF_TEST);
 

@@ -166,11 +166,7 @@ void loop() {
         // connect the load
         if( !lineups.readStatus(OUTPUT_CONNECTED) ) lineups.toggleOutput(true);
         
-        if( !charger.is_charging() && 
-            ( charger.get_mode() == CHARGING_NOT_STARTED || 
-              charger.get_mode() == CHARGING_COMPLETE ) ) {
-
-          charger.set_mode(CHARGING_INIT);
+        if( !charger.is_charging() && ( charger.get_mode() <= CHARGING_COMPLETE ) ) {
           delayed_charge->start( 0, 3 * TIMER_ONE_SEC );          
         }
 

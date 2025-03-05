@@ -48,7 +48,7 @@ void Charger::regulate(unsigned long ticks) {
 
     if(!_charging) return;   
 
-    if( !(_charging_mode == CHARGING_BY_CC || _charging_mode == CHARGING_BY_CV) )  {
+    if( !(_charging_mode == CHARGING_BY_CC || _charging_mode == CHARGING_BY_CV || _charging_mode == CHARGING_COMPLETE) )  {
         set_charging(false);
         return;
     }
@@ -95,21 +95,48 @@ void Charger::regulate(unsigned long ticks) {
     
     float deviation = 0.0F;
 
-    if( _charging_mode == CHARGING_BY_CC ) {
-        deviation = (_charging_current - reading_c)/_charging_current;
+    switch(_charging_mode) {
+        case CHARGING_BY_CC:
+            deviation = (_charging_current - reading_c)/_charging_current;
+            break;
+        case CHARGING_BY_CV:
+            // check if the charging is complete
+            if( reading_c <= _cutoff_current ) {
+                _charging_mode = CHARGING_COMPLETE;   
+                _charging_voltage = INTERACTIVE_STBY_V_BAT;      
+            }
+    
+            deviation = ( _charging_voltage - reading_v )/_charging_voltage;
+            break;
+        case CHARGING_COMPLETE:
+            deviation = ( _charging_voltage - reading_v )/_charging_voltage;
+            if( reading_c > 1.5F * _cutoff_current ) {
+                _charging_mode = CHARGING_REPLACE_BATTERY;      
+            }
+            break;
+        default:
+            set_charging(false);
+            return;
+            break;
     }
-    else if( _charging_mode == CHARGING_BY_CV ) {
+    
+    // if( _charging_mode == CHARGING_BY_CC ) {
+    //     deviation = (_charging_current - reading_c)/_charging_current;
+    // }
+    // else if( _charging_mode == CHARGING_BY_CV ) {
         
-        // check if the charging is complete
-        if( reading_c <= _cutoff_current ) {
-            _charging_mode = CHARGING_COMPLETE;
-            set_charging(false);   
-            return;                       
-        }
+    //     // check if the charging is complete
+    //     if( reading_c <= _cutoff_current ) {
+    //         _charging_mode = CHARGING_COMPLETE;   
+    //         _charging_voltage =       
+    //     }
 
-        deviation = ( _charging_voltage - reading_v )/_charging_voltage;
+    //     deviation = ( _charging_voltage - reading_v )/_charging_voltage;
 
-    }
+    // }
+    // else if(_charging_mode == CHARGING_COMPLETE ) {
+    //     deviation = ( _charging_voltage - reading_v )/_charging_voltage;
+    // }
 
     long elapsed_ticks = 1; // @todo: switch to actual time?
 

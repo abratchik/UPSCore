@@ -28,7 +28,8 @@
 #define INTERACTIVE_INPUT_VOLTAGE_HYSTERESIS 0.02F
 #define INTERACTIVE_MAX_AC_OUT 4.0F
 #define INTERACTIVE_MIN_AC_OUT 0.1F
-#define INTERACTIVE_MAX_V_BAT_CELL 13.8F
+#define INTERACTIVE_MAX_V_BAT_CELL 14.4F
+#define INTERACTIVE_STBY_V_BAT_CELL 13.6F
 #define INTERACTIVE_MIN_V_BAT_CELL 10.5F
 #define INTERACTIVE_NUM_CELLS  2
 #define INTERACTIVE_NUM_BATTERY_PACKS  1
@@ -55,10 +56,12 @@
 
 // fully drained battery voltage
 const static float INTERACTIVE_MIN_V_BAT = INTERACTIVE_MIN_V_BAT_CELL * INTERACTIVE_NUM_CELLS;    
-// fully charged battery voltage             
+// max battery voltage             
 const static float INTERACTIVE_MAX_V_BAT = INTERACTIVE_MAX_V_BAT_CELL * INTERACTIVE_NUM_CELLS; 
+// standby battery voltage (fully charged)
+const static float INTERACTIVE_STBY_V_BAT = INTERACTIVE_STBY_V_BAT_CELL * INTERACTIVE_NUM_CELLS; 
 // fully charged minus fully drained battery voltage 
-const static float INTERACTIVE_V_BAT_DELTA = INTERACTIVE_MAX_V_BAT - INTERACTIVE_MIN_V_BAT;
+const static float INTERACTIVE_V_BAT_DELTA = INTERACTIVE_STBY_V_BAT - INTERACTIVE_MIN_V_BAT;
 // full battery capacity in AH
 const static float INTERACTIVE_TOTAL_BATTERY_CAP = INTERACTIVE_BATTERY_AH * 
                                                    INTERACTIVE_NUM_CELLS * 
