@@ -379,15 +379,11 @@ void Voltronic::printSensorParams( float offset, float scale,  float value = 0) 
     printParam("(%i %.5f %.5f %f\n", _sensor_ptr, offset, scale, value);
 }
 
-void Voltronic::printChargerParams(float kp, float ki, float kd, float cv, float cc, float v, float c, bool chrg, int mode, float err, int output) {
-    _stream->write('(');
-    _stream->print(_sensor_ptr);
+void Voltronic::printChargerParams(bool chrg, int mode,  float cc, float cv, float c, float v, float err, int output) {
+    _stream->write('#');
+    _stream->print(chrg);
     _stream->write(' ');
-    _stream->print(kp);
-    _stream->write(' ');
-    _stream->print(ki);
-    _stream->write(' ');
-    _stream->print(kd);
+    _stream->print(mode);
     _stream->write(' ');
     _stream->print(cc);
     _stream->write(' ');
@@ -397,10 +393,6 @@ void Voltronic::printChargerParams(float kp, float ki, float kd, float cv, float
     _stream->write(' ');
     _stream->print(v);
     _stream->write(' ');    
-    _stream->print(chrg);
-    _stream->write(' ');
-    _stream->print(mode);
-    _stream->write(' ');
     _stream->print(err);
     _stream->write(' ');
     _stream->print(output);
@@ -459,7 +451,7 @@ void Voltronic::printParam(const char* fmt, ...) {
                     }
                     break;
                 default:
-                    _stream->print(*(fmt + index));
+                    _stream->write(*(fmt + index));
                     break;    
             }
          }

@@ -58,6 +58,8 @@ class Charger {
         float get_last_deviation() { return _last_deviation; };
         int get_output() { return _cout_regv; };
 
+        int get_elapsed_ticks() { return _elapsed_ticks; };
+
         // Increase or decrease cout_regv depending on the sensor reading
         // Current and voltage sensors must be set before calling
         // @param ticks current time in ticks 
@@ -98,7 +100,8 @@ class Charger {
         float _last_deviation;     
 
         // the ticks on the latest regulate() or start() call
-        unsigned long last_ticks;     
+        unsigned long _last_ticks;  
+        int _elapsed_ticks;   
 
         // PID params
         float k[CHARGING_NUMPARAM];   

@@ -86,7 +86,7 @@ class Voltronic {
 
         void printSensorParams(float offset, float scale, float value = 0);
 
-        void printChargerParams(float kp, float ki, float kd, float cv, float cc, float v, float c, bool chrg, int mode, float err, int output);
+        void printChargerParams(bool chrg, int mode, float cc, float cv, float c, float v, float err, int output);
 
         void printParam(const char* fmp, ...);
 

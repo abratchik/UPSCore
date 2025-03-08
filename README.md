@@ -7,7 +7,7 @@ The central part of a typical line-interactive UPS is a Big Iron Transformer, wh
 
 <center class="half">
     <div style="background-color:#ffffff;">
-    <img src="docs/line-interactive-ups.png" title="Line Interactive UPS with the Back-Boost Transformer"/>
+    <img src="docs/line-interactive-ups-diagram.png" title="Line Interactive UPS with the Back-Boost Transformer"/>
 </center>
 
 If the input voltage is within the acceptable limits (230V +/- 10%) then the UPS passes it to the load with no changes, just applying EMI/RFI and load filters. But once the voltage is deviating for more than 10%, the relays are switching to ensure voltage back or boost, depending on the sign of deviation. 
@@ -22,7 +22,7 @@ The line-interactive UPS controller features implemented in this project include
 2. Automatically switch on the inverter once the AC power falls beyond the regulation limits and safely return to the AC once the mains power is restored back to normal.
 3. Support user-friendly display indication. There are numerous display options for the UPS so for this project, an indicator based on [TM1640 chip](https://www.alldatasheet.com/datasheet-pdf/pdf/1133630/TITAN/TM1640.html) has been re-used from a broken commercial UPS. One can modify or amend the Display class (see Display.h and .cpp ) in case if different hardware is to be supported.   
 4. Display switch on/off and brightness regulation
-5. Support of pulse-width modulated output for driving the charger switch.
+5. Support of pulse-width modulated output for driving the battery charging process.
 6. Support of the sensors: input/output voltage, output current (load), battery voltage and current, temperature (TBA)
 7. Support of the UPS sound indication (buzzer).
 8. Support of the self-test scenario 
@@ -54,7 +54,7 @@ The solution supports most of the Voltronic commands. Some extensions are added 
 <tr><td>CS</td><td>Re-connect the load or cancel the previous S command</td></tr>
 <tr><td>VN</td><td>Print the scale factor and the offset of the sensor specified by the index N</td></tr>
 <tr><td>VNPMVK...K</td><td>allows to tune or read sensor params, where:<br>
-N - index of the sensor (1 digit)<br>
+N - index of the sensor (1 digit). See the Sensors section below for the list of available indexes.<br>
 M - can be 0 (scale) or 1 (offset).<br>
 K...K - float value to be set (17 symbols, counting with the decimal dot).</td></tr>
 <tr><td>W</td><td>Save the sensor params in the EEPROM</td></tr>

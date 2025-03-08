@@ -90,7 +90,7 @@ void setup() {
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
 
-  // Timer 1 used for charging (15.6KHz)
+  // Timer 1 used for charging (15.6KHz), screen refresh and sensor readings
   TCCR1A = _BV(WGM10) | _BV(WGM11);  // 10bit
   TCCR1B = _BV(WGM12) | _BV(CS10);   // x1 fast pwm
 
@@ -122,6 +122,7 @@ ISR(TIMER0_COMPA_vect) {
   
 }
 
+
 void loop() {
 
   if(vac_in.ready() && ac_out.ready() && v_bat.ready() ) {
@@ -136,9 +137,9 @@ void loop() {
 
         if( !lineups.isBatteryMode() ) {
           // stop the charger to prevent interference with the inverter
-          charger.stop();
           delayed_charge->stop();
-
+          charger.stop();
+          
           beeper_timer->start( 8 * TIMER_ONE_SEC, TIMER_ONE_SEC );
           lineups.toggleInverter(true);
         }
@@ -164,9 +165,11 @@ void loop() {
         lineups.toggleInput( true );
 
         // connect the load
-        if( !lineups.readStatus(OUTPUT_CONNECTED) ) lineups.toggleOutput(true);
-        
-        if( !charger.is_charging() && ( charger.get_mode() <= CHARGING_COMPLETE ) ) {
+        if( !lineups.readStatus(OUTPUT_CONNECTED) )  {
+          lineups.toggleOutput(true);
+        }
+
+        if( !charger.is_charging() && !delayed_charge->isEnabled() && ( charger.get_mode() <= CHARGING_COMPLETE ) ) {
           delayed_charge->start( 0, 3 * TIMER_ONE_SEC );          
         }
 
@@ -195,7 +198,7 @@ void loop() {
           self_test->stop();
           charger.stop();
 
-          if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 ) {
+          if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 && !output_power_timer->isEnabled() ) {
             output_power_timer->setOnFinish( output_power_on );
             output_power_timer->start( 0, serial_protocol.getParam(PARAM_RESTORE_MIN) * 60 * TIMER_ONE_SEC );
           }
@@ -243,7 +246,7 @@ void loop() {
           if( serial_protocol.getParam(PARAM_SHUTDOWN_MIN) == 0.0F ) {
             output_power_off();
           }
-          else if(! output_power_timer->isEnabled() && !output_power_timer->isActive() ) {
+          else if(! output_power_timer->isEnabled() && !output_power_timer->isEnabled() ) {
             output_power_timer->setOnFinish( output_power_off );
             output_power_timer->start( 0, (int) ( serial_protocol.getParam(PARAM_SHUTDOWN_MIN) * 60 * TIMER_ONE_SEC ) );
           }
@@ -282,15 +285,12 @@ void loop() {
                                               sensor->reading());
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
-            serial_protocol.printChargerParams(charger.getParam(CHARGING_KP),
-                                              charger.getParam(CHARGING_KI),
-                                              charger.getParam(CHARGING_KD),
-                                              charger.get_voltage(),
-                                              charger.get_current(),
-                                              v_bat.reading(),
-                                              c_bat.reading(),
-                                              charger.is_charging(),
+            serial_protocol.printChargerParams(charger.is_charging(),
                                               charger.get_mode(),
+                                              charger.get_current(),                                             
+                                              charger.get_voltage(),
+                                              c_bat.reading(),
+                                              v_bat.reading(),
                                               charger.get_last_deviation(),
                                               charger.get_output());
           }
@@ -308,17 +308,18 @@ void loop() {
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
             charger.setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
-            serial_protocol.printChargerParams(charger.getParam(CHARGING_KP),
-                                               charger.getParam(CHARGING_KI),
-                                               charger.getParam(CHARGING_KD),
-                                               charger.get_voltage(),
-                                               charger.get_current(),
-                                               v_bat.reading(),
-                                               c_bat.reading(),
-                                               charger.is_charging(),
-                                               charger.get_mode(),
-                                               charger.get_last_deviation(),
-                                               charger.get_output());
+            serial_protocol.printParam("(%f %f %f %f %f %f %f %i %i %f %i\n",
+                                        charger.getParam(CHARGING_KP),
+                                        charger.getParam(CHARGING_KI),
+                                        charger.getParam(CHARGING_KD),
+                                        charger.get_voltage(),
+                                        charger.get_current(),
+                                        v_bat.reading(),
+                                        c_bat.reading(),
+                                        charger.is_charging(),
+                                        charger.get_mode(),
+                                        charger.get_last_deviation(),
+                                        charger.get_output());
           }
           break;
         
@@ -379,6 +380,8 @@ void beep_off() {
 }
 
 void start_charging() {
+  if( !lineups.readStatus(OUTPUT_CONNECTED) ) return;
+
   charger.set_min_battery_voltage(INTERACTIVE_MIN_V_BAT);        
   charger.set_cutoff_current(INTERACTIVE_BATTERY_AH * 0.02F);
   charger.start( INTERACTIVE_BATTERY_AH * 0.1F, INTERACTIVE_MAX_V_BAT, timer_manager.getTicks());

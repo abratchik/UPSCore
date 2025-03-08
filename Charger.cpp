@@ -12,7 +12,7 @@ Charger::Charger(HardwareSerial* stream, Settings* settings, Sensor* current_sen
     _settings = settings;
     _stream = stream;
 
-    k[CHARGING_KP] = 250.0;
+    k[CHARGING_KP] = 400.0;
     k[CHARGING_KI] = 0.02;
     k[CHARGING_KD] = 50.0; 
     k[CHARGING_TEST] = 0;
@@ -26,7 +26,7 @@ void Charger::start(float current, float voltage, unsigned long ticks) {
     set_current(current);
     set_voltage(voltage);
 
-    last_ticks = ticks;
+    _last_ticks = ticks;
     _last_deviation = 0;
     _deviation_sum = 0;
 
@@ -110,16 +110,16 @@ void Charger::regulate(unsigned long ticks) {
             break;
         case CHARGING_COMPLETE:
             deviation = ( _charging_voltage - reading_v )/_charging_voltage;
-            if( reading_c > 1.5F * _cutoff_current ) {
-                _charging_mode = CHARGING_REPLACE_BATTERY;      
-            }
+            // if( reading_c > 2.0F * _cutoff_current ) {
+            //     _charging_mode = CHARGING_REPLACE_BATTERY;      
+            // }
             break;
         default:
             set_charging(false);
             return;
             break;
     }
-    
+
     // if( _charging_mode == CHARGING_BY_CC ) {
     //     deviation = (_charging_current - reading_c)/_charging_current;
     // }
@@ -160,20 +160,20 @@ void Charger::regulate(unsigned long ticks) {
     pwmSet10(_cout_regv);
 
     _last_deviation = deviation;
-    last_ticks = ticks;
+    _elapsed_ticks = ticks - _last_ticks;
+    _last_ticks = ticks;
+
 
     return;
 }
 
 void Charger::stop() {
-    if(!_charging) return;
-
-    set_current(0);
+    // if(!_charging) return;
     
     _charging_mode = CHARGING_NOT_STARTED;
 
     _last_deviation = 0.0F;
-    last_ticks = 0;
+    _last_ticks = 0;
     
     set_charging(false);
 
