@@ -1,4 +1,4 @@
-# Arduino-based line-interactive UPS controller
+# Line-interactive UPS on Arduino
 This project is implementing core functions of a basic single-phase line-interactive UPS using Arduino. The main idea is to have a fully functional controller, which can manage display indication, relays, invertor and sensors and also support external communication based on the [Voltronic protocol](https://networkupstools.org/protocols/voltronic.html). 
 
 ## Introduction 
