@@ -52,14 +52,18 @@ The solution supports most of the Voltronic commands. Some extensions are added 
 <tr><td>CT</td><td>Cancel the self-test</td></tr>
 <tr><td>SnRm</td><td>Disconnect the load in n (.2→.9, 01→99) minutes and then connect again after m (0001..9999) minutes</td></tr>
 <tr><td>CS</td><td>Re-connect the load or cancel the previous S command</td></tr>
+<tr><td>R</td><td>Reset the controller board</td></tr>
 <tr><td>VN</td><td>Print the scale factor and the offset of the sensor specified by the index N</td></tr>
 <tr><td>VNPMVK...K</td><td>allows to tune or read sensor params, where:<br>
-N - index of the sensor (1 digit). See the Sensors section below for the list of available indexes.<br>
+N - index of the sensor (1 digit). See the Sensors section below for the list of available indexes (0-4).<br>
 M - can be 0 (scale) or 1 (offset).<br>
-K...K - float value to be set (17 symbols, counting with the decimal dot).</td></tr>
+K...K - float value to be set (17 symbols, counting with the decimal dot).<br>
+The same command can also modify PID parameters of the charger regulator (index=5). Please see the Charger section for details.</td></tr>
 <tr><td>W</td><td>Save the sensor params in the EEPROM</td></tr>
 </tbody>
 </table>
+
+Commands are posted through Serial  bus. Each command should be sent for execution followed by the `CR` symbol. 
 
 ## Sensors
 The crucial part of line-interactive UPS is a set of sensors measuring input and output voltage and current as well as battery parameters. It is very important to ensure that these sensors are configured and tuned correctly so that the UPS could function properly.
@@ -112,6 +116,61 @@ The comprehensive list of sensors is represented in the table below. Each sensor
     </tr>           
 </tbody>
 </table>
+
+All sensors are estimated 20 times per second. Readings are accumulated and converted into the running average, with the period of 20 readings.
+
+## Charger
+Battery charging is kicking in in 3 seconds when the input VAC is within the acceptable limits. The algorithm of charging is "constant current->constant voltage->standby":
+
+1. Constant Current. The charger is maintaining the battery current at 10% of the battery capacity till the voltage is reaching the maximum as defined for the cell per cycle use.
+2. Constant voltage. The charger is maintaining the maximum voltage per cell till the charging current become less than 2% of the battery capacity.
+3. Standby. The voltage is dropped to the standby level and kept at it thus maintaining the battery at the charged state.
+
+Regulation of the current and voltage is based on the PID regulator. Values of PID coefficients can be configured using the "V"/"W" commands with the index 5 (similar to a sensor):
+
+<table>
+<thead>
+<td><b>#</b></td>
+<td><b>Parameter</b></td>
+<td><b>Description</b></td>
+<td><b>Default value</b></td>
+</thead>
+<tbody>
+<tr>
+<td>0</td><td>Kp</td><td>Proportional</td><td>400</td>
+</tr>
+<tr>
+<td>0</td><td>Ki</td><td>Integral</td><td>0.02</td>
+</tr>
+<tr>
+<td>0</td><td>Kd</td><td>Derivative</td><td>50.0</td>
+</tr>
+</tbody>
+</table>
+
+Output of the charger is a PWM signal on the pin 10, which has maximum duty cycle set at 50% and frequency 15.6kHz. 
+
+Charger parameters can be changed similar to sensor parameters, by the command <b>VNPMVK...K</b> where N=5, M is the index of the parameter and K...K is the new value. Dumping of parameters canbe invoked by <b>V5</b> command, also similar to sensors. Example of the response is below:
+
+```
+(5 250.00 0.02 50.00 0.90 28.80 0.79 26.52 1 1 0.12 358
+```
+Values are space-delimited and come as follows:
+- index of the charger, always equal to 5
+- Kp PID parameter
+- Ki PID parameter
+- Kd PID parameter
+- target battery current during the 1st charging phase
+- target battery voltage during the 2nd charging phase
+- measured battery current 
+- measured battery voltage 
+- '1' if charging or '0' otherwise
+- phase of charging ('0' - constant current, '1' - constant voltage, '2' - standby). If the value is greater than 2, this indicates that some erroneous situation happened during the charging. Possible error codes are defined in the ChargingStatus enum in the Charger.h header.
+- relative deviation from the target (current or voltage)
+- output value of the charger regulator. Can be from 0 to 512. The maximum value corresponds to the 50% duty cycle.
+
+## Display
+Indication of the line-interactive modes and parameters can be done in many different ways. The Display class is assuming the popular TM1640 LED driver chip, which can support various UPS LED displays, custom or not.  
 
 ## License
 [GPLv3](/LICENSE)
