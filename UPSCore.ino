@@ -18,11 +18,11 @@ Settings settings;
 SimpleTimerManager timer_manager(&Serial);
 
 //init sensors
-Sensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, TIMER_ONE_SEC );   // AC input voltage - 300V max
-Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, TIMER_ONE_SEC ); // AC output voltage - 300V max
-Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, TIMER_ONE_SEC );  // AC output current 
-Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, TIMER_ONE_SEC );   // Battery voltage 
-Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, TIMER_ONE_SEC );    // Battery current +/- 29.9A
+Sensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, SENSOR_NUMSAMPLES );   // AC input voltage - 300V max
+Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, SENSOR_NUMSAMPLES ); // AC output voltage - 300V max
+Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES );  // AC output current 
+Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, SENSOR_NUMSAMPLES );   // Battery voltage 
+Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, SENSOR_NUMSAMPLES );    // Battery current +/- 29.9A
 
 SensorManager sensor_manager(&Serial, &settings);
 
@@ -127,7 +127,7 @@ void loop() {
 
   if(vac_in.ready() && ac_out.ready() && v_bat.ready() ) {
 
-    RegulateStatus result = lineups.regulate();
+    RegulateStatus result = lineups.regulate(timer_manager.getTicks());
 
     // print_readings(result);
 

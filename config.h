@@ -10,6 +10,8 @@
 #define SENSOR_BAT_V_IN A3            // battery voltage sensor input
 #define SENSOR_BAT_C_IN A4            // battery current sensor input
 
+#define SENSOR_NUMSAMPLES 20          // number of samples 
+
 #define RESET_PIN 4                   // the pin used to trigger reset. Requires 
                                       // 100nF capacitor between this pin and
                                       // the Reset pin of the board.

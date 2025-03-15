@@ -20,7 +20,7 @@ Interactive::Interactive( Sensor *vac_in, Sensor *vac_out, Sensor *ac_out, Senso
     writeStatus( BEEPER_IS_ACTIVE, true );
 }
 
-RegulateStatus Interactive::regulate() {
+RegulateStatus Interactive::regulate(unsigned long ticks) {
     
     _battery_level = max(min((_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA, 1.0F), 0.0F) ;
     writeStatus(SELF_TEST, _selfTestMode);
@@ -76,13 +76,15 @@ RegulateStatus Interactive::regulate() {
 
     if(utility_fail){
         self_test = false;
+        _last_fail_time = ticks;
+
         writeStatus(SELF_TEST, false);
         if(!_batteryMode) 
             _last_fault_input_voltage = vac_input;
         writeStatus(UTILITY_FAIL, true);
     }
 
-    if( utility_fail || self_test )  {
+    if( utility_fail || self_test || abs(ticks - _last_fail_time) < INVERTER_GRACE_PERIOD )  {
 
         toggleInput(false);
 

@@ -7,6 +7,10 @@
 #include "Sensor.h"
 #include "Charger.h"
 
+// time when the UPS stays on battery after failure even if the input is back to normal
+// needed to protect the invertor from frequent on/off cycles when the input voltage is oscillating
+// around the lowest acceptable limit.
+const int INVERTER_GRACE_PERIOD = TIMER_ONE_SEC * 3;
 
 enum InteractiveStatusFlags {
     BEEPER_IS_ACTIVE,           // Beeper activated
@@ -44,7 +48,7 @@ class Interactive {
         Interactive(Sensor *vac_in, Sensor *vac_out, Sensor *ac_out, Sensor *v_bat);
 
         // AC regulate function (to be called in the loop)
-        RegulateStatus regulate();
+        RegulateStatus regulate(unsigned long ticks);
 
         void setNominalVACInput(float nominal_vac_input = INTERACTIVE_DEFAULT_INPUT_VOLTAGE,
                                 float deviation = INTERACTIVE_INPUT_VOLTAGE_DEVIATION,
@@ -98,6 +102,8 @@ class Interactive {
 
         bool _shutdownMode = false;
         bool _selfTestMode = false;
+
+        unsigned long _last_fail_time = 0;
 
         float _battery_level; 
 
