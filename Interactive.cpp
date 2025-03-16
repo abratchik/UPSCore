@@ -63,7 +63,8 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     // wrong output voltage protection after inverter
     if(_batteryMode && _vac_out->ready()) {
         float vac_output = _vac_out->reading();
-        if( vac_output - _nominal_vac_input  > nominal_deviation  ) 
+        if( (abs(vac_output - _nominal_vac_input)  > nominal_deviation) && 
+             (ticks - _last_fail_time > INVERTER_GRACE_PERIOD)   ) 
             writeStatus(UPS_FAULT, true);
     }
 
@@ -72,19 +73,20 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
         return REGULATE_STATUS_ERROR;
     
     // input voltage is far off the regulation limits (X2)
-    bool utility_fail = abs_deviation > 2 * nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : -1 );
+    bool utility_fail = abs_deviation > 2 * (nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : - 1 ));
 
     if(utility_fail){
         self_test = false;
         _last_fail_time = ticks;
 
         writeStatus(SELF_TEST, false);
-        if(!_batteryMode) 
+        if(!_batteryMode) {
             _last_fault_input_voltage = vac_input;
+        }
         writeStatus(UTILITY_FAIL, true);
     }
 
-    if( utility_fail || self_test || abs(ticks - _last_fail_time) < INVERTER_GRACE_PERIOD )  {
+    if( utility_fail || self_test || (ticks - _last_fail_time < INVERTER_GRACE_PERIOD) )  {
 
         toggleInput(false);
 

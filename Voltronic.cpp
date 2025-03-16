@@ -55,34 +55,34 @@ ExecuteCommand Voltronic::executeCommand() {
                 if(_buf[1] == 'S') {
 
                     // universal but slower method 
-                    // printParam("(%4.1f %4.1f %4.1f %3i %3.1f %3.1f %3.1f %b\n",
-                    //     _param[PARAM_INPUT_VAC],
-                    //     _param[PARAM_INPUT_FAULT_VAC],
-                    //     _param[PARAM_OUTPUT_VAC],
-                    //     (int)(_param[PARAM_OUTPUT_LOAD_LEVEL] * 100),
-                    //     _param[PARAM_OUTPUT_FREQ],
-                    //     _param[PARAM_BATTERY_VDC],
-                    //     _param[PARAM_INTERNAL_TEMP],
-                    //     _status
-                    // );
+                    printParam("(%4.1f %4.1f %4.1f %3i %3.1f %3.1f %3.1f %b\r\n",
+                        _param[PARAM_INPUT_VAC],
+                        _param[PARAM_INPUT_FAULT_VAC],
+                        _param[PARAM_OUTPUT_VAC],
+                        (int)(_param[PARAM_OUTPUT_LOAD_LEVEL] * 100),
+                        _param[PARAM_OUTPUT_FREQ],
+                        _param[PARAM_BATTERY_VDC],
+                        _param[PARAM_INTERNAL_TEMP],
+                        _status
+                    );
 
-                    _stream->write('(');
-                    writeFloat(_param[PARAM_INPUT_VAC], 4, 1);
-                    _stream->write(' ');
-                    writeFloat(_param[PARAM_INPUT_FAULT_VAC], 4, 1);
-                    _stream->write(' ');
-                    writeFloat(_param[PARAM_OUTPUT_VAC], 4, 1);
-                    _stream->write(' ');
-                    writeInt( (int)(_param[PARAM_OUTPUT_LOAD_LEVEL] * 100), 3);
-                    _stream->write(' ');
-                    writeFloat(_param[PARAM_OUTPUT_FREQ], 3, 1);
-                    _stream->write(' ');
-                    writeFloat(_param[PARAM_BATTERY_VDC], 3, 1); 
-                    _stream->write(' ');
-                    writeFloat(_param[PARAM_INTERNAL_TEMP], 3, 1);
-                    _stream->write(' ');
-                    writeBin(_status);
-                    writeEOL();
+                    // _stream->write('(');
+                    // writeFloat(_param[PARAM_INPUT_VAC], 4, 1);
+                    // _stream->write(' ');
+                    // writeFloat(_param[PARAM_INPUT_FAULT_VAC], 4, 1);
+                    // _stream->write(' ');
+                    // writeFloat(_param[PARAM_OUTPUT_VAC], 4, 1);
+                    // _stream->write(' ');
+                    // writeInt( (int)(_param[PARAM_OUTPUT_LOAD_LEVEL] * 100), 3);
+                    // _stream->write(' ');
+                    // writeFloat(_param[PARAM_OUTPUT_FREQ], 3, 1);
+                    // _stream->write(' ');
+                    // writeFloat(_param[PARAM_BATTERY_VDC], 3, 1); 
+                    // _stream->write(' ');
+                    // writeFloat(_param[PARAM_INTERNAL_TEMP], 3, 1);
+                    // _stream->write(' ');
+                    // writeBin(_status);
+                    // writeEOL();
                 }
                 else if( _buf[1] == 'G' && _buf[2] == 'S' ) {
                     // TODO: support Grand Status
@@ -95,7 +95,7 @@ ExecuteCommand Voltronic::executeCommand() {
                 }
                 else if( _buf[1] == 'M' && _buf[2] == 'D' ) {
 
-                    printParam("(%15s %7i %3.0f %3s %3.0f %3.0f %2i %3.1f",
+                    printParam("(%15s %7i %3.0f %3s %3.0f %3.0f %2i %3.1f\r\n",
                         PART_NUMBER,
                         RATED_VA,
                         (float)100.0F * ACTUAL_VA / RATED_VA,
@@ -132,25 +132,25 @@ ExecuteCommand Voltronic::executeCommand() {
                 }
                 else if( _buf[1] == 'B' && _buf[2] == 'V' ) {
 
-                    // printParam("(%4.2f %2i %2i %i %3i\n", 
-                    //     _param[PARAM_BATTERY_VDC],
-                    //     INTERACTIVE_NUM_CELLS,
-                    //     INTERACTIVE_NUM_BATTERY_PACKS,
-                    //     (int) ( _param[PARAM_BATTERY_LEVEL] * 100 ),
-                    //     (int)_param[PARAM_REMAINING_MIN]
-                    // );
+                    printParam("(%4.2f %2i %2i %i %3i\r\n", 
+                        _param[PARAM_BATTERY_VDC],
+                        INTERACTIVE_NUM_CELLS,
+                        INTERACTIVE_NUM_BATTERY_PACKS,
+                        (int) ( _param[PARAM_BATTERY_LEVEL] * 100 ),
+                        (int)_param[PARAM_REMAINING_MIN]
+                    );
 
-                    _stream->write('(');
-                    writeFloat(_param[PARAM_BATTERY_VDC], 4, 2);
-                    _stream->write(' ');
-                    writeInt(INTERACTIVE_NUM_CELLS, 2);
-                    _stream->write(' ');
-                    writeInt(INTERACTIVE_NUM_BATTERY_PACKS, 2);
-                    _stream->write(' ');
-                    writeInt((int) ( _param[PARAM_BATTERY_LEVEL] * 100 ), 3);
-                    _stream->write(' ');
-                    writeInt((int)_param[PARAM_REMAINING_MIN], 3);
-                    writeEOL();
+                    // _stream->write('(');
+                    // writeFloat(_param[PARAM_BATTERY_VDC], 4, 2);
+                    // _stream->write(' ');
+                    // writeInt(INTERACTIVE_NUM_CELLS, 2);
+                    // _stream->write(' ');
+                    // writeInt(INTERACTIVE_NUM_BATTERY_PACKS, 2);
+                    // _stream->write(' ');
+                    // writeInt((int) ( _param[PARAM_BATTERY_LEVEL] * 100 ), 3);
+                    // _stream->write(' ');
+                    // writeInt((int)_param[PARAM_REMAINING_MIN], 3);
+                    // writeEOL();
                 }
                 else {
                     command_status = COMMAND_BEEPER_MUTE;
@@ -201,7 +201,7 @@ ExecuteCommand Voltronic::executeCommand() {
             
             case 'I':
                 
-                printParam("#%15s %10s %10s\n", 
+                printParam("#%15s %10s %10s\r\n", 
                     MANUFACTURER,
                     PART_NUMBER,
                     FIRMWARE_VERSION
@@ -357,7 +357,7 @@ void Voltronic::printFixed(const char* str, int len) {
 
 void Voltronic::printRatedInfo() {
 
-    printParam("#%4.1f %3i %3.1f %3.1f\n", 
+    printParam("#%4.1f %3i %3.1f %3.1f\r\n", 
         _param[PARAM_OUTPUT_VAC_NOMINAL],
         (int)_param[PARAM_OUTPUT_AC_NOMINAL],
         _param[PARAM_BATTERY_VDC_NOMINAL],
@@ -376,27 +376,29 @@ void Voltronic::printRatedInfo() {
 }
 
 void Voltronic::printSensorParams( float offset, float scale,  float value = 0) {   
-    printParam("(%i %.5f %.5f %f\n", _sensor_ptr, offset, scale, value);
+    printParam("(%i %.5f %.5f %f\r\n", _sensor_ptr, offset, scale, value);
 }
 
 void Voltronic::printChargerParams(bool chrg, int mode,  float cc, float cv, float c, float v, float err, int output) {
-    _stream->write('#');
-    _stream->print(chrg);
-    _stream->write(' ');
-    _stream->print(mode);
-    _stream->write(' ');
-    _stream->print(cc);
-    _stream->write(' ');
-    _stream->print(cv);
-    _stream->write(' ');
-    _stream->print(c);
-    _stream->write(' ');
-    _stream->print(v);
-    _stream->write(' ');    
-    _stream->print(err);
-    _stream->write(' ');
-    _stream->print(output);
-    writeEOL();
+    printParam("#%i %i %f %f %f %f %f %i\r\n", chrg, mode, cc, cv, c, v, err, output);
+
+    // _stream->write('#');
+    // _stream->print(chrg);
+    // _stream->write(' ');
+    // _stream->print(mode);
+    // _stream->write(' ');
+    // _stream->print(cc);
+    // _stream->write(' ');
+    // _stream->print(cv);
+    // _stream->write(' ');
+    // _stream->print(c);
+    // _stream->write(' ');
+    // _stream->print(v);
+    // _stream->write(' ');    
+    // _stream->print(err);
+    // _stream->write(' ');
+    // _stream->print(output);
+    // writeEOL();
 }
 
 void Voltronic::printPartModel() {

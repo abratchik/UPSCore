@@ -86,7 +86,7 @@ void setup() {
   // Timer 0 30.58Hz. Used for blinker and sensor readings.
   TCNT0 = 0;
   TCCR0A = _BV(WGM00);                       /* Phase Correct PWM mode, pins not activated */
-  TCCR0B = _BV(WGM02)|_BV(CS02)|_BV(CS00);   /* Phase Correct PWM mode, Prescaler = 1024 */
+  TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Phase Correct PWM mode, Prescaler = 64     */
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
 
@@ -148,9 +148,11 @@ void loop() {
         // enable beep every second if the battery is low
         if(beeper_timer->isEnabled() && 
            bitRead(lineups.getStatus(), BATTERY_LOW) &&  
-           beeper_timer->getPeriod() != 2 * TIMER_ONE_SEC )
+           beeper_timer->getPeriod() != 2 * TIMER_ONE_SEC ) {
+
           beeper_timer->start( 2 * TIMER_ONE_SEC, TIMER_ONE_SEC );
-        
+
+        }
         break;
 
       case REGULATE_STATUS_SUCCESS:
@@ -308,7 +310,7 @@ void loop() {
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
             charger.setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
-            serial_protocol.printParam("(%f %f %f %f %f %f %f %i %i %f %i\n",
+            serial_protocol.printParam("(%f %f %f %f %f %f %f %i %i %f %i\r\n",
                                         charger.getParam(CHARGING_KP),
                                         charger.getParam(CHARGING_KI),
                                         charger.getParam(CHARGING_KD),

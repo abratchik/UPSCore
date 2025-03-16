@@ -25,7 +25,7 @@
 
 #define BEEPER_OUT 12                 // beeper output pin
 
-#define TIMER_ONE_SEC   20            // number of ticks to form 1 second
+#define TIMER_ONE_SEC   320           // number of ticks to form 1 second
 #define MAX_NUM_TIMERS  5             // number of timers used
 
 #define INTERACTIVE_DEFAULT_INPUT_VOLTAGE 220.0F    // nominal input VAC 
@@ -46,7 +46,7 @@
 
 #define DISPLAY_DA_OUT   11
 #define DISPLAY_CLK_OUT  13
-#define DISPLAY_BLINK_FREQ      16
+
 #define DISPLAY_MAX_BRIGHTNESS 4
 #define DISPLAY_DEFAULT_BRIGHTNESS 1
 
@@ -58,6 +58,9 @@
 #define RATED_VA 2000
 #define ACTUAL_VA 1200
 #define FIRMWARE_VERSION "001.00"
+
+
+const int DISPLAY_BLINK_FREQ      = TIMER_ONE_SEC * 0.8;
 
 // fully drained battery voltage
 const static float INTERACTIVE_MIN_V_BAT = INTERACTIVE_MIN_V_BAT_CELL * INTERACTIVE_NUM_CELLS;    

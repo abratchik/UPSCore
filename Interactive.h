@@ -10,7 +10,7 @@
 // time when the UPS stays on battery after failure even if the input is back to normal
 // needed to protect the invertor from frequent on/off cycles when the input voltage is oscillating
 // around the lowest acceptable limit.
-const int INVERTER_GRACE_PERIOD = TIMER_ONE_SEC * 3;
+const int INVERTER_GRACE_PERIOD = TIMER_ONE_SEC * 2;
 
 enum InteractiveStatusFlags {
     BEEPER_IS_ACTIVE,           // Beeper activated

@@ -14,12 +14,16 @@ enum SensorParam {
     SENSOR_NUMPARAMS
 };
 
+/**
+ * @brief Sensor class implements a running average of a series of samples from an analog input. 
+ * 
+ */
 class Sensor {
     public:
 
         Sensor(int pin, float offset = DEFAULT_OFFSET, float scale = DEFAULT_SCALE, int num_samples = DEFAULT_NUM_SAMPLES);
 
-        // Take measurement and accumulate the value. Multiple measurements will be averaged when reading is called.
+        // Takes measurement and accumulate the value. Multiple measurements will be averaged when reading is called.
         void sample();
         
         // Reset all the previously taken measurements 
@@ -40,12 +44,11 @@ class Sensor {
 
         void setParam(float value, SensorParam p) { _param[p] = value; };
         float getParam(SensorParam p) { return _param[p]; };
-
-    private:
+    
+    protected:
         int _pin;
         bool _ready;
 
-        float _average_reading = 0.0; 
         int _counter = 0;
 
         int *_readings;
@@ -53,8 +56,20 @@ class Sensor {
         int _num_samples = DEFAULT_NUM_SAMPLES;
         float _param[SENSOR_NUMPARAMS];
 
+    private:
+
+        float _average_reading = 0; 
+
 };
 
+// class RMSSensor : public Sensor {
+//     int get_pin() {return _pin;};
+// };
+
+/**
+ * @brief SensorManager class orchestrates sensor sampling and parameter handling
+ * 
+ */
 class SensorManager {
     public:
         
