@@ -83,10 +83,10 @@ void setup() {
 
   cli(); // stop interrupts
 
-  // Timer 0 30.58Hz. Used for blinker and sensor readings.
+  // Timer 0 490Hz. Used for blinker and sensor readings.
   TCNT0 = 0;
-  TCCR0A = _BV(WGM00);                       /* Phase Correct PWM mode, pins not activated */
-  TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Phase Correct PWM mode, Prescaler = 64     */
+  TCCR0A = _BV(WGM00);                       /* Phase Correct, pins not activated */
+  TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Phase Correct, Prescaler = 64     */
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
 

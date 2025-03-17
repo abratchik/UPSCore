@@ -42,29 +42,32 @@ class Sensor {
         void setNumSamples( int num_samples = DEFAULT_NUM_SAMPLES ) { _num_samples = num_samples; };
         int getNumSamples() { return _num_samples; };
 
-        void setParam(float value, SensorParam p) { _param[p] = value; };
+        void setParam(float value, SensorParam p) { _param[p] = value; _update = true;};
         float getParam(SensorParam p) { return _param[p]; };
     
     protected:
         int _pin;
-        bool _ready;
+        bool _ready, _update;
 
-        int _counter = 0;
+        int _counter;
 
         int *_readings;
 
         int _num_samples = DEFAULT_NUM_SAMPLES;
         float _param[SENSOR_NUMPARAMS];
 
+        float _reading;
+
     private:
 
-        float _average_reading = 0; 
+        float _reading_sum = 0; 
 
 };
 
-// class RMSSensor : public Sensor {
-//     int get_pin() {return _pin;};
-// };
+class RMSSensor : public Sensor {
+     private:
+        int period;
+};
 
 /**
  * @brief SensorManager class orchestrates sensor sampling and parameter handling

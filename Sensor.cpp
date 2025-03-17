@@ -13,21 +13,17 @@ Sensor::Sensor(int pin, float offset, float scale, int num_samples) {
 
 void Sensor::sample() {
     int reading = analogRead(_pin);
-
-    int next_counter = _counter + 1;
-
+    
     if(_ready) {
-
-        int oldest_reading = *( _readings + _counter );
-
-        _average_reading = (float)( reading - oldest_reading ) / _num_samples  +  _average_reading;
+        _reading_sum += reading - *( _readings + _counter );
     }
     else {
-        _average_reading = ((float) reading + _average_reading * _counter ) / next_counter;
+        _reading_sum += reading;
     }
 
     *(_readings + _counter) = reading;
     _counter++;
+    _update = true;
 
     if(_counter >= _num_samples) {
         _ready = true;
@@ -38,13 +34,22 @@ void Sensor::sample() {
 void Sensor::reset() {
     _counter = 0;
     memset(_readings, 0, _num_samples);
-    _average_reading = 0.0F;
+    _reading_sum = 0;
     _ready = false;
+    _update = false;
+    _reading = 0.0;
 }
 
 float Sensor::reading() {
     if(_counter == 0) sample();
-    return  _average_reading * _param[SENSOR_PARAM_SCALE]   + _param[SENSOR_PARAM_OFFSET];
+    if(_update) {
+        float average = (float)_reading_sum / (_ready? _num_samples : _counter);
+        _reading = average * _param[SENSOR_PARAM_SCALE]   + _param[SENSOR_PARAM_OFFSET];
+        _update = false;
+    }
+
+    return _reading;
+        
 }
 
 void SensorManager::registerSensor(Sensor* sensor) {
