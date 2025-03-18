@@ -7,6 +7,12 @@
 
 #define DISPLAY_MAX_POS         8   // max number of used groups  
 
+enum DisplayMode {
+    DISPLAY_VOLTAGE,
+    DISPLAY_FREQ,
+    DISPLAY_NUMMODES
+};
+
 enum ReadingUnit {
     UNIT_HEX,
     UNIT_HZ,
@@ -98,7 +104,7 @@ class Display : public TM1640 {
 
         void setOutputRelayStatus(float rly_status) { setRelayStatus(rly_status, 3); };
 
-        void show(bool blink_state = false);
+        void show();
         
         void clear(bool clear_display = true);
         
@@ -111,6 +117,12 @@ class Display : public TM1640 {
         bool isActive() { return _active; };
 
         void toggle();
+
+        void toggle_display_mode() { _display_mode = (_display_mode++) % DISPLAY_NUMMODES ;};
+        void set_display_mode(int mode) { _display_mode = mode; };
+        DisplayMode get_display_mode() { return _display_mode; };
+
+        void refresh() { _blink_state = !_blink_state; };
     
     protected:
 
@@ -131,6 +143,10 @@ class Display : public TM1640 {
 
         bool _active;
         int _brightness;
+
+        bool _blink_state;
+
+        int _display_mode;
        
 };
 

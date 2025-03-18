@@ -175,6 +175,10 @@ ExecuteCommand Voltronic::executeCommand() {
                         command_status = COMMAND_SET_BRIGHTNESS;
                     }   
                 }
+                else if (_buf[1] == 'M')
+                {
+                    command_status = COMMAND_TOGGLE_DISPLAY_MODE;
+                }
                 else {
                     command_status = COMMAND_TOGGLE_DISPLAY;
                 }

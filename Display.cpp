@@ -3,6 +3,8 @@
 Display::Display()
   : TM1640(DISPLAY_DA_OUT, DISPLAY_CLK_OUT, DISPLAY_MAX_POS) {  
     setupDisplay(true, DISPLAY_DEFAULT_BRIGHTNESS);  
+    _blink_state = false;
+    _display_mode = DISPLAY_VOLTAGE;
 }
 
 void Display::setInputReading(int reading, ReadingUnit mode ) {
@@ -84,12 +86,12 @@ void Display::clear(bool clear_display) {
     memset(blink, 0x0, sizeof(blink));
 }
 
-void Display::show(bool blink_state) {
+void Display::show() {
     sendCommand(TM16XX_CMD_DATA_AUTO);
     start();
     send(TM16XX_CMD_ADDRESS | 0x0);	
     for( int i = 0; i < DISPLAY_MAX_POS; i++ ) {
-        send( ( blink_state? board[i] ^ blink[i] : board[i] ));
+        send( ( _blink_state? board[i] ^ blink[i] : board[i] ));
     }
     stop();
 

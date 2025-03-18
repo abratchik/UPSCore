@@ -18,8 +18,8 @@ Settings settings;
 SimpleTimerManager timer_manager(&Serial);
 
 //init sensors
-Sensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, SENSOR_NUMSAMPLES );   // AC input voltage - 300V max
-Sensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, SENSOR_NUMSAMPLES ); // AC output voltage - 300V max
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, SENSOR_NUMSAMPLES );   // AC input voltage - 300V max
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, SENSOR_NUMSAMPLES ); // AC output voltage - 300V max
 Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES );  // AC output current 
 Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, SENSOR_NUMSAMPLES );   // Battery voltage 
 Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, SENSOR_NUMSAMPLES );    // Battery current +/- 29.9A
@@ -45,7 +45,6 @@ SimpleTimer* self_test = nullptr;
 
 // init Display module
 Display display;
-bool blink_state = false; 
 void refresh_display();
 SimpleTimer* display_refresh_timer = nullptr;
 
@@ -86,7 +85,7 @@ void setup() {
   // Timer 0 490Hz. Used for blinker and sensor readings.
   TCNT0 = 0;
   TCCR0A = _BV(WGM00);                       /* Phase Correct, pins not activated */
-  TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Phase Correct, Prescaler = 64     */
+  TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Phase Correct, Prescaler = x64     */
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
 
@@ -220,6 +219,7 @@ void loop() {
       serial_protocol.setParam(PARAM_OUTPUT_VAC, vac_out.reading());
       serial_protocol.setParam(PARAM_OUTPUT_LOAD_LEVEL, ac_out.reading() / INTERACTIVE_MAX_AC_OUT );
       serial_protocol.setParam(PARAM_BATTERY_LEVEL, lineups.getBatteryLevel() );
+      serial_protocol.setParam(PARAM_OUTPUT_FREQ, (vac_out.get_period() > 0? TIMER_ONE_SEC / vac_out.get_period() : 0) );
 
       //TODO: add estimation of remaining time here
 
@@ -277,6 +277,10 @@ void loop() {
         
         case COMMAND_TOGGLE_DISPLAY:
           display.toggle();
+          break;
+        
+        case COMMAND_TOGGLE_DISPLAY_MODE:
+          display.toggle_display_mode();
           break;
         
         case COMMAND_READ_SENSOR:
@@ -344,12 +348,23 @@ void loop() {
 // refresh the display based on sensor readings and the lineups state
 void refresh_display() {
   // Serial.println("refresh display");
-  blink_state = !blink_state;
+  display.refresh();
 
   if( vac_in.ready() && ac_out.ready() && v_bat.ready() ) { 
     display.clear(false);
-    display.setInputReading( vac_in.readingR() );
-    display.setOutputReading( vac_out.readingR() );
+
+    switch(display.get_display_mode()) {
+      case DISPLAY_FREQ:
+        display.setInputReading( (vac_in.get_period() > 0? round(TIMER_ONE_SEC / vac_in.get_period()) : 0), UNIT_HZ );
+        display.setOutputReading( (vac_out.get_period() > 0? round(TIMER_ONE_SEC / vac_out.get_period()) : 0), UNIT_HZ);
+        break;
+        
+      default:
+        display.setInputReading( vac_in.readingR(), UNIT_VAC );
+        display.setOutputReading( vac_out.readingR(), UNIT_VAC );
+        break;
+    }
+
     float battery_level = lineups.getBatteryLevel();
     ReadingDirection direction = lineups.isBatteryMode() ? 
                                     LEVEL_DECREASING : 
@@ -369,7 +384,7 @@ void refresh_display() {
                       ( lineups.readStatus( UNUSUAL_STATE ) ? UNUSUAL_MODE_INDICATOR : 0) |
                       ( lineups.readStatus( UPS_FAULT ) ? UPS_FAULT_INDICATOR : 0) );
 
-    display.show(blink_state);
+    display.show();
   }
 }
 
