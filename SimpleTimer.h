@@ -9,6 +9,10 @@
 
 typedef void (*callback)(void);
 
+/**
+ * @brief The SimpleTimer class is implementing a timer functionality, which is used for periodic and deferred function calls.
+ * 
+ */
 class SimpleTimer {
     public:
         SimpleTimer(HardwareSerial * dbg, unsigned long period = 0, unsigned long duration = 0, bool enabled = false, 
@@ -79,7 +83,10 @@ class SimpleTimer {
         HardwareSerial * _dbg;
 };
 
-
+/**
+ * @brief this class is managing the timers allowing to create or increment all the timers at once.
+ * 
+ */
 class SimpleTimerManager {
     public:
         SimpleTimerManager(HardwareSerial * dbg){

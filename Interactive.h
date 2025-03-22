@@ -45,7 +45,7 @@ enum RegulateStatus {
 
 class Interactive {
     public:
-        Interactive(Sensor *vac_in, Sensor *vac_out, Sensor *ac_out, Sensor *v_bat);
+        Interactive(RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out, Sensor *v_bat);
 
         // AC regulate function (to be called in the loop)
         RegulateStatus regulate(unsigned long ticks);
@@ -86,7 +86,8 @@ class Interactive {
         bool readStatus(int nbit) { return bitRead(_status, nbit); };
     
     private:
-        Sensor *_vac_in, *_vac_out, *_ac_out, *_v_bat;
+        RMSSensor *_vac_in, *_vac_out;
+        Sensor *_ac_out, *_v_bat;
 
         SimpleTimer *_beeper_timer;
 

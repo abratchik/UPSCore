@@ -1,28 +1,31 @@
 #include "Sensor.h"
 
 
-Sensor::Sensor(int pin, float offset, float scale, int num_samples, int sampling_rate) {
+Sensor::Sensor(int pin, float offset, float scale, int num_samples, int sampling_period) {
     pinMode(pin, INPUT);
     _pin = pin;
     _num_samples = num_samples;
     _param[SENSOR_PARAM_OFFSET] = offset;
     _param[SENSOR_PARAM_SCALE] = scale;
-    _sampling_rate = sampling_rate;
-    _readings = (int*)malloc(num_samples * sizeof(int));
+    _sampling_period = sampling_period;
+    _readings = (int*)calloc(num_samples, sizeof(int));
     reset();
 }
 
 void Sensor::sample() {
 
-    _sample_counter = ( _sample_counter++ ) % _sampling_rate ;
+    _sample_counter = ( ++_sample_counter ) % _sampling_period ;
     
-    if(! _sample_counter ) return;
+    if( _sample_counter ) return;
 
     int reading = analogRead(_pin);
     
     increment_sum(reading);
 
+    _prev_reading = reading;
+
     *(_readings + _counter) = reading;
+
     _counter++;
     _update = true;
 
@@ -31,6 +34,7 @@ void Sensor::sample() {
         _counter = 0;
         on_counter_overflow();
     }
+
 }
 
 void Sensor::increment_sum(int reading) {
@@ -44,12 +48,13 @@ void Sensor::increment_sum(int reading) {
 
 void Sensor::reset() {
     _counter = 0;
-    memset(_readings, 0, _num_samples);
-    _reading_sum = 0;
+    memset(_readings, 0, _num_samples * sizeof(int));
+    _reading_sum = 0L;
     _ready = false;
     _update = false;
-    _avg_reading = 0.0;
+    _avg_reading = 0.0F;
     _sample_counter = 0;
+    _prev_reading = -1;
 
     on_reset();
 }
@@ -97,7 +102,6 @@ void RMSSensor::increment_sum(int reading) {
         _period_start = _counter;
     }
 
-    _prev_reading = reading;
 }
 
 void RMSSensor::on_counter_overflow() {
@@ -110,7 +114,7 @@ void RMSSensor::on_counter_overflow() {
         return; 
     }
 
-    _period = (float)_period_sum * _sampling_rate / _period_counter ;
+    _period = (float)_period_sum * _sampling_period / _period_counter ;
 
     _period_sum = _period_counter = 0;
 }

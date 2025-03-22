@@ -117,7 +117,7 @@ The comprehensive list of sensors is represented in the table below. Each sensor
 </tbody>
 </table>
 
-All sensors are estimated 20 times per second. Readings are accumulated and converted into the running average, with the period of 20 readings.
+All sensors are estimated 490 times per second. Readings are accumulated and converted into the running average, with the period of 20 readings.
 
 ## Charger
 Battery charging is kicking in in 3 seconds when the input VAC is within the acceptable limits. The algorithm of charging is "constant current->constant voltage->standby":

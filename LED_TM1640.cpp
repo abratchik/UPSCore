@@ -1,11 +1,56 @@
-#include "Display.h"
+#include "LED_TM1640.h"
 
-Display::Display()
-  : TM1640(DISPLAY_DA_OUT, DISPLAY_CLK_OUT, DISPLAY_MAX_POS) {  
-    setupDisplay(true, DISPLAY_DEFAULT_BRIGHTNESS);  
-    _blink_state = false;
-    _display_mode = DISPLAY_VOLTAGE;
+#ifdef DISPLAY_TYPE_LED_TM1640
+
+void Display::initialize() {
+    setup_display();
 }
+
+void Display::setup_display() {
+    TM1640::setupDisplay(_active, _brightness);
+}
+
+void Display::on_refresh() {
+    
+    _blink_state = !_blink_state; 
+
+    clear(false);
+
+    switch(_display_mode) {
+        case DISPLAY_FREQ:
+        setInputReading( (_vac_in->get_period() > 0? round(TIMER_ONE_SEC / _vac_in->get_period()) : 0), UNIT_HZ );
+        setOutputReading( (_vac_out->get_period() > 0? round(TIMER_ONE_SEC / _vac_out->get_period()) : 0), UNIT_HZ);
+        break;
+
+        default:
+        setInputReading( _vac_in->readingR(), UNIT_VAC );
+        setOutputReading( _vac_out->readingR(), UNIT_VAC );
+        break;
+    }
+
+    float battery_level = _lineups->getBatteryLevel();
+    ReadingDirection direction = _lineups->isBatteryMode() ? 
+                                    LEVEL_DECREASING : 
+                                    ( _charger->get_mode() <= CHARGING_BY_CV ? LEVEL_INCREASING : LEVEL_NO_CHANGE );
+
+    setBatteryLevel( battery_level, direction );
+    float load_level = _ac_out->reading() / INTERACTIVE_MAX_AC_OUT;
+    setLoadLevel( load_level );
+    setFlag( ( load_level > 0.0 ? LOAD_INDICATOR : 0 ) | 
+                ( battery_level > 0.0 ? BATTERY_INDICATOR : 0 ) |
+                ( _lineups->isBatteryMode() ? BATTERY_MODE_INDICATOR : AC_MODE_INDICATOR ) );
+    setInputRelayStatus( _lineups->readStatus(INPUT_CONNECTED) );
+    setOutputRelayStatus( _lineups->readStatus(OUTPUT_CONNECTED) );
+    
+    setBlink( ( _lineups->readStatus( OVERLOAD ) ? LOAD_INDICATOR : 0) |
+                ( _lineups->readStatus( BATTERY_LOW ) ? BATTERY_INDICATOR : 0) |
+                ( _lineups->readStatus( UNUSUAL_STATE ) ? UNUSUAL_MODE_INDICATOR : 0) |
+                ( _lineups->readStatus( UPS_FAULT ) ? UPS_FAULT_INDICATOR : 0) );
+
+    show();
+
+}
+
 
 void Display::setInputReading(int reading, ReadingUnit mode ) {
     setReading( reading, mode, 2, 0 );
@@ -97,13 +142,5 @@ void Display::show() {
 
 }
 
-void Display::setupDisplay(boolean active, byte intensity) {
-    _active = active;
-    _brightness = intensity;
-    TM1640::setupDisplay(_active, intensity);
+#endif
 
-}
-
-void Display::toggle() {
-    setupDisplay(!_active, _brightness);
-}

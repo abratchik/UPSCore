@@ -8,10 +8,12 @@
 #define SENSOR_OUTPUT_VAC_IN A1       // output AC voltage
 #define SENSOR_OUTPUT_C_IN A2         // output AC current sensor
 #define SENSOR_BAT_V_IN A3            // battery voltage sensor input
-#define SENSOR_BAT_C_IN A4            // battery current sensor input
+#define SENSOR_BAT_C_IN A7            // battery current sensor input
 
 #define SENSOR_NUMSAMPLES 20          // number of samples 
+#define SENSOR_PERIOD 2               // number of ticks between samples
 
+#define BUZZ_PIN 3                    // beeper output pin
 #define RESET_PIN 4                   // the pin used to trigger reset. Requires 
                                       // 100nF capacitor between this pin and
                                       // the Reset pin of the board.
@@ -23,9 +25,7 @@
 #define INTERACTIVE_RIGHT_RLY_OUT 8   // RY3 relay manage pin
 #define INTERACTIVE_INVERTER_OUT 9    // inverter manage pin
 
-#define BEEPER_OUT 12                 // beeper output pin
-
-#define TIMER_ONE_SEC   320           // number of ticks to form 1 second
+#define TIMER_ONE_SEC   976           // number of ticks to form 1 second
 #define MAX_NUM_TIMERS  5             // number of timers used
 
 #define INTERACTIVE_DEFAULT_INPUT_VOLTAGE 220.0F    // nominal input VAC 
@@ -42,16 +42,21 @@
 #define INTERACTIVE_BATTERY_LOW 0.1F
 #define INTERACTIVE_DEFAULT_FREQ 50.0F
 
-#define SELF_TEST_MIN_BAT_LVL 0.8F
+#define SELF_TEST_MIN_BAT_LVL 0.8F                  // minimum required battery charge level for the selftest to run
 
 #define DISPLAY_DA_OUT   11
 #define DISPLAY_CLK_OUT  13
 
-#define DISPLAY_MAX_BRIGHTNESS 4
-#define DISPLAY_DEFAULT_BRIGHTNESS 1
+// #define DISPLAY_TYPE_NONE
+#define DISPLAY_TYPE_LED_TM1640
+// #define DISPLAY_TYPE_LCD_2004A
+
+#define DISPLAY_MAX_BRIGHTNESS 4                    // maximum brightness level of the display backlit
+#define DISPLAY_DEFAULT_BRIGHTNESS 1                // default brightness level of the display backlit
 
 #define SERIAL_MONITOR_BAUD_RATE 9600
 
+// the following constants are arbitrary and can be updated as necessary for a particular UPS implementation
 #define MANUFACTURER "ExeGate"
 #define PART_NUMBER "EX293851RUS"
 #define PART_MODEL "ExeGate ServerRM UNL-2000.LCD.AVR.2SH.3C13.USB.2U"
@@ -59,8 +64,7 @@
 #define ACTUAL_VA 1200
 #define FIRMWARE_VERSION "001.00"
 
-
-const int DISPLAY_BLINK_FREQ      = TIMER_ONE_SEC * 0.8;
+const int DISPLAY_BLINK_FREQ      = TIMER_ONE_SEC * 0.5;
 
 // fully drained battery voltage
 const static float INTERACTIVE_MIN_V_BAT = INTERACTIVE_MIN_V_BAT_CELL * INTERACTIVE_NUM_CELLS;    

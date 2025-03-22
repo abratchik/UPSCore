@@ -34,6 +34,13 @@ enum ChargerPIDParam {
     CHARGING_NUMPARAM
 };
 
+/**
+ * @brief Charger is the class responsible for managing the battery charging. This class uses the battery 
+ *        and current sensor readings to manipulate the PWM output on the pin 10 of Arduino.  
+ *        Frequency of the PWM output is defined by Timer 1 registers, which are set in the UPSCore.ino setup() function.
+ *        The charging circuit through the battery is defined by the PWM signal. Regulation is done with help of PID regulator
+ *        where the battery voltage and current are used as inputs, depending on the phase of the charge (CC, CV or backup).
+ */
 class Charger {
     public:
 

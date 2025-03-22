@@ -33,9 +33,11 @@ enum ExecuteCommand {
     COMMAND_SELF_TEST_CANCEL,
     COMMAND_SHUTDOWN,
     COMMAND_SHUTDOWN_CANCEL,
+#ifndef DISPLAY_TYPE_NONE    
     COMMAND_SET_BRIGHTNESS,
     COMMAND_TOGGLE_DISPLAY,
     COMMAND_TOGGLE_DISPLAY_MODE,
+#endif
     COMMAND_READ_SENSOR,
     COMMAND_TUNE_SENSOR,
     COMMAND_SAVE_SENSORS
@@ -58,11 +60,16 @@ enum VoltronicParam {
     PARAM_SHUTDOWN_MIN,         // minutes till disconnect output
     PARAM_REMAINING_MIN,        // remaining time on battery in minutes
     PARAM_RESTORE_MIN,          // get the minutes till restore output
+#ifndef DISPLAY_TYPE_NONE
     PARAM_DISPLAY_BRIGHTNESS_LEVEL,
+#endif
     PARAM_NUMPARAM
 };
 
-
+/**
+ * @brief this class implements Voltronic protocol for serial communication with the UPS controller
+ * 
+ */
 class Voltronic {
 
     public:
@@ -85,9 +92,7 @@ class Voltronic {
         float getSensorParamValue() { return _sensor_param_value; };
         int getSensorParam() { return _sensor_param; };
 
-        void printSensorParams(float offset, float scale, float value = 0);
-
-        void printChargerParams(bool chrg, int mode, float cc, float cv, float c, float v, float err, int output);
+        void printSensorParams(float offset, float scale, float value = 0, int reading = 0, long reading_sum = 0L);
 
         void printParam(const char* fmp, ...);
 

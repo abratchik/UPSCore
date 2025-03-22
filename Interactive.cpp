@@ -1,6 +1,6 @@
 #include "Interactive.h"
 
-Interactive::Interactive( Sensor *vac_in, Sensor *vac_out, Sensor *ac_out, Sensor *v_bat) {
+Interactive::Interactive( RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out, Sensor *v_bat) {
     // link to sensors
     _vac_in = vac_in;
     _vac_out = vac_out;

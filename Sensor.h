@@ -11,7 +11,7 @@
 #define SIGN(X) ((X) > 0) - ((X) < 0)
 
 const int DEFAULT_NUM_SAMPLES = 30;
-const int DEFAULT_SAMPLING_RATE = 1;
+const int DEFAULT_SAMPLING_PERIOD = 1;
 
 enum SensorParam {
     SENSOR_PARAM_SCALE,
@@ -29,7 +29,7 @@ class Sensor {
         Sensor(int pin, float offset = DEFAULT_OFFSET, 
                 float scale = DEFAULT_SCALE, 
                 int num_samples = DEFAULT_NUM_SAMPLES, 
-                int sampling_rate = DEFAULT_SAMPLING_RATE);
+                int sampling_period = DEFAULT_SAMPLING_PERIOD);
 
         // Takes measurement and accumulate the value. Multiple measurements will be averaged when reading is called.
         void sample();
@@ -42,7 +42,7 @@ class Sensor {
         float reading();
         
         //  triggered when the sensor is reset
-        virtual void on_reset() {;};
+        virtual void on_reset() { ;};
 
         // triggered on the readings counter overflow
         virtual void on_counter_overflow() {;};
@@ -59,6 +59,10 @@ class Sensor {
         bool ready() { return _ready; };
 
         int getNumSamples() { return _num_samples; };
+
+        int get_prev_reading() { return _prev_reading; };
+
+        long get_reading_sum() { return _reading_sum; };
 
         void setParam(float value, SensorParam p) { _param[p] = value; _update = true;};
         float getParam(SensorParam p) { return _param[p]; };
@@ -77,12 +81,15 @@ class Sensor {
         int _num_samples;
         float _param[SENSOR_NUMPARAMS];
 
-        int _sampling_rate;
+        int _sampling_period;
         int _sample_counter;
 
         float _avg_reading;
 
         long _reading_sum; 
+
+        // keeps the previous reading
+        int _prev_reading;        
 
 };
 
@@ -103,7 +110,7 @@ class RMSSensor : public Sensor {
         void on_reset() override {
             _period = 0;
             _period_counter = _period_sum = 0;
-            _period_start = _prev_reading = -1;
+            _period_start = -1;
         };
 
         void on_counter_overflow() override;
@@ -126,9 +133,6 @@ class RMSSensor : public Sensor {
 
         // keeps the counter value at the start of the period
         int _period_start;
-
-        // keeps the previous reading
-        int _prev_reading;
 
 
 };

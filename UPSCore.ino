@@ -18,11 +18,11 @@ Settings settings;
 SimpleTimerManager timer_manager(&Serial);
 
 //init sensors
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, SENSOR_NUMSAMPLES );   // AC input voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, SENSOR_NUMSAMPLES ); // AC output voltage - 300V max
-Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES );  // AC output current 
-Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, SENSOR_NUMSAMPLES );   // Battery voltage 
-Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, SENSOR_NUMSAMPLES );    // Battery current +/- 29.9A
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, SENSOR_NUMSAMPLES, SENSOR_PERIOD );   // AC input voltage - 300V max
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, SENSOR_NUMSAMPLES, SENSOR_PERIOD ); // AC output voltage - 300V max
+Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES, SENSOR_PERIOD );  // AC output current 
+Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, SENSOR_NUMSAMPLES, SENSOR_PERIOD );   // Battery voltage 
+Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, SENSOR_NUMSAMPLES, SENSOR_PERIOD );    // Battery current +/- 29.9A
 
 SensorManager sensor_manager(&Serial, &settings);
 
@@ -44,7 +44,7 @@ void stop_self_test();
 SimpleTimer* self_test = nullptr;
 
 // init Display module
-Display display;
+Display display(&lineups, &charger, &vac_in, &vac_out, &ac_out, &v_bat);
 void refresh_display();
 SimpleTimer* display_refresh_timer = nullptr;
 
@@ -82,26 +82,28 @@ void setup() {
 
   cli(); // stop interrupts
 
-  // Timer 0 490Hz. Used for blinker and sensor readings.
+  // Timer 0 976Hz. Used for display refresh, blinker and sensor readings.
   TCNT0 = 0;
-  TCCR0A = _BV(WGM00);                       /* Phase Correct, pins not activated */
+  TCCR0A = _BV(WGM00)|_BV(WGM01);            /* Phase Correct, pins not activated */
   TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Phase Correct, Prescaler = x64     */
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
 
-  // Timer 1 used for charging (15.6KHz), screen refresh and sensor readings
+  // Timer 1 used for charging (15.6KHz)
   TCCR1A = _BV(WGM10) | _BV(WGM11);  // 10bit
   TCCR1B = _BV(WGM12) | _BV(CS10);   // x1 fast pwm
 
   sei(); // resume interrupts
 
-  display_refresh_timer->start();
+  display.initialize();
 
-  pinMode(BEEPER_OUT, OUTPUT);
+  pinMode(BUZZ_PIN, OUTPUT);
 
   beep_on();
   delay(1000);
   beep_off();
+
+  display_refresh_timer->start();
 
   serial_protocol.printPrompt();
   serial_protocol.writeEOL();
@@ -127,8 +129,6 @@ void loop() {
   if(vac_in.ready() && ac_out.ready() && v_bat.ready() ) {
 
     RegulateStatus result = lineups.regulate(timer_manager.getTicks());
-
-    // print_readings(result);
 
     switch(result) {
 
@@ -271,8 +271,9 @@ void loop() {
 
           break;
 
+#ifndef DISPLAY_TYPE_NONE          
         case COMMAND_SET_BRIGHTNESS:
-          display.setupDisplay( true, (int)serial_protocol.getParam(PARAM_DISPLAY_BRIGHTNESS_LEVEL) );
+          display.set_brightness( (int)serial_protocol.getParam(PARAM_DISPLAY_BRIGHTNESS_LEVEL) );
           break;
         
         case COMMAND_TOGGLE_DISPLAY:
@@ -282,16 +283,19 @@ void loop() {
         case COMMAND_TOGGLE_DISPLAY_MODE:
           display.toggle_display_mode();
           break;
-        
+#endif        
         case COMMAND_READ_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() ) {
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
             serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
                                               sensor->getParam(SENSOR_PARAM_SCALE),
-                                              sensor->reading());
+                                              sensor->reading(), 
+                                              sensor->get_prev_reading(), 
+                                              sensor->get_reading_sum());
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
-            serial_protocol.printChargerParams(charger.is_charging(),
+            serial_protocol.printParam("#%i %i %f %f %f %f %f %i\r\n",
+                                              charger.is_charging(),
                                               charger.get_mode(),
                                               charger.get_current(),                                             
                                               charger.get_voltage(),
@@ -339,61 +343,26 @@ void loop() {
       }
     } 
 
+    // refresh the display based on sensor readings and the lineups state
+    display.refresh();
+
   }
 
   wdt_reset();
 
 }
 
-// refresh the display based on sensor readings and the lineups state
+// initiate display refresh
 void refresh_display() {
-  // Serial.println("refresh display");
-  display.refresh();
-
-  if( vac_in.ready() && ac_out.ready() && v_bat.ready() ) { 
-    display.clear(false);
-
-    switch(display.get_display_mode()) {
-      case DISPLAY_FREQ:
-        display.setInputReading( (vac_in.get_period() > 0? round(TIMER_ONE_SEC / vac_in.get_period()) : 0), UNIT_HZ );
-        display.setOutputReading( (vac_out.get_period() > 0? round(TIMER_ONE_SEC / vac_out.get_period()) : 0), UNIT_HZ);
-        break;
-        
-      default:
-        display.setInputReading( vac_in.readingR(), UNIT_VAC );
-        display.setOutputReading( vac_out.readingR(), UNIT_VAC );
-        break;
-    }
-
-    float battery_level = lineups.getBatteryLevel();
-    ReadingDirection direction = lineups.isBatteryMode() ? 
-                                    LEVEL_DECREASING : 
-                                    ( charger.get_mode() <= CHARGING_BY_CV ? LEVEL_INCREASING : LEVEL_NO_CHANGE );
-
-    display.setBatteryLevel( battery_level, direction );
-    float load_level = ac_out.reading() / INTERACTIVE_MAX_AC_OUT;
-    display.setLoadLevel( load_level );
-    display.setFlag( ( load_level > 0.0 ? LOAD_INDICATOR : 0 ) | 
-                    ( battery_level > 0.0 ? BATTERY_INDICATOR : 0 ) |
-                    ( lineups.isBatteryMode() ? BATTERY_MODE_INDICATOR : AC_MODE_INDICATOR ) );
-    display.setInputRelayStatus( lineups.readStatus(INPUT_CONNECTED) );
-    display.setOutputRelayStatus( lineups.readStatus(OUTPUT_CONNECTED) );
-    
-    display.setBlink( ( lineups.readStatus( OVERLOAD ) ? LOAD_INDICATOR : 0) |
-                      ( lineups.readStatus( BATTERY_LOW ) ? BATTERY_INDICATOR : 0) |
-                      ( lineups.readStatus( UNUSUAL_STATE ) ? UNUSUAL_MODE_INDICATOR : 0) |
-                      ( lineups.readStatus( UPS_FAULT ) ? UPS_FAULT_INDICATOR : 0) );
-
-    display.show();
-  }
+  display.init_refresh();
 }
 
 void beep_on() {
-  digitalWrite(BEEPER_OUT, ( bitRead(lineups.getStatus(), BEEPER_IS_ACTIVE) ? HIGH: LOW ));
+  digitalWrite(BUZZ_PIN, ( bitRead(lineups.getStatus(), BEEPER_IS_ACTIVE) ? HIGH: LOW ));
 }
 
 void beep_off() {
-  digitalWrite(BEEPER_OUT, LOW);
+  digitalWrite(BUZZ_PIN, LOW);
 }
 
 void start_charging() {
