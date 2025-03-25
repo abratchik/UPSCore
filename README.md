@@ -20,10 +20,10 @@ The line-interactive UPS controller features implemented in this project include
 
 1. Manage UPS relays to ensure the back/boost regulation of the output voltage when on AC power.
 2. Automatically switch on the inverter once the AC power falls beyond the regulation limits and safely return to the AC once the mains power is restored back to normal.
-3. Support user-friendly display indication. There are numerous display options for the UPS so for this project, an indicator based on [TM1640 chip](https://www.alldatasheet.com/datasheet-pdf/pdf/1133630/TITAN/TM1640.html) has been re-used from a broken commercial UPS. One can modify or amend the Display class (see Display.h and .cpp ) in case if different hardware is to be supported.   
+3. Support user-friendly display indication. There are numerous display options for the UPS so for this project. For this projects, 3 options are supported: a 1602 or 2003 LCD display based on HD44780 controller (the most common for Arduino community), or an LED indicator based on [TM1640 chip](https://www.alldatasheet.com/datasheet-pdf/pdf/1133630/TITAN/TM1640.html). The latter has been re-used from a broken commercial UPS. One can modify or amend the Display class (see **Display.h**) in case if different hardware is to be supported.   
 4. Display switch on/off and brightness regulation
 5. Support of pulse-width modulated output for driving the battery charging process.
-6. Support of the sensors: input/output voltage, output current (load), battery voltage and current, temperature (TBA)
+6. Support of the sensors: input/output AC voltage, output current (load), battery voltage and current. 
 7. Support of the UPS sound indication (buzzer).
 8. Support of the self-test scenario 
 9. Support of the standby/restore scenario
@@ -118,6 +118,29 @@ The comprehensive list of sensors is represented in the table below. Each sensor
 </table>
 
 Two types of sensors are supported - Running Average (for non-periodic signal) and true RMS for AC voltage.  
+
+### AC voltage sensors
+AC voltage sensors can be implemented on ZMPT101b signal transformer. The schema of the sensor is below. 
+
+<center class="half">
+    <div style="background-color:#ffffff;">
+    <img src="docs/zmpt101b.jpg" title="Line Interactive UPS with the Back-Boost Transformer"/>
+</center>
+
+There are assembled modules available on the market so they can be used for the testing and prototyping purposes:
+
+<center class="half">
+    <div style="background-color:#ffffff;">
+    <img src="docs/zmpt101b-module.png" title="Line Interactive UPS with the Back-Boost Transformer"/>
+</center>
+
+### DC Current sensor
+Measurement of the DC current through the battery can be done with help if the standard ACS712 module based on Hall effect. There are 5A, 20A and 30A modules available on the market. The schema of these modules is below:
+
+<center class="half">
+    <div style="background-color:#ffffff;">
+    <img src="docs/acs712.jpg" title="Line Interactive UPS with the Back-Boost Transformer"/>
+</center>
 
 ## Charger
 Battery charging is kicking in 2 seconds when the input VAC is within the acceptable limits. The algorithm of charging is "constant current->constant voltage->standby":
