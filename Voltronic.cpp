@@ -10,7 +10,7 @@ Voltronic::Voltronic( HardwareSerial* stream, char protocol ) {
     _param[PARAM_OUTPUT_VAC_NOMINAL] = INTERACTIVE_DEFAULT_INPUT_VOLTAGE;
     _param[PARAM_OUTPUT_AC_NOMINAL] = INTERACTIVE_MAX_AC_OUT;
     _param[PARAM_BATTERY_VDC_NOMINAL] = INTERACTIVE_MAX_V_BAT;
-    
+
 #ifndef DISPLAY_TYPE_NONE    
     _param[PARAM_DISPLAY_BRIGHTNESS_LEVEL] = DISPLAY_DEFAULT_BRIGHTNESS;
 #endif
@@ -205,19 +205,25 @@ ExecuteCommand Voltronic::executeCommand() {
                 // K - float value to be set (17 symbols). Can be omitted
                 
                 _sensor_ptr = (int) parseFloat(1,1);
+                switch( _buf[2]) {
+                    case 'P':
+                        _sensor_param = (int) parseFloat(3,1);
 
-                if( _buf[2] == 'P' ) {
-                    _sensor_param = (int) parseFloat(3,1);
-
-                    if( _buf[4] == 'V' ) {
-                        _sensor_param_value = parseFloat(5,17);
-                        command_status = COMMAND_TUNE_SENSOR;
-                    }
-                    else 
+                        if( _buf[4] == 'V' ) {
+                            _sensor_param_value = parseFloat(5,17);
+                            command_status = COMMAND_TUNE_SENSOR;
+                        }
+                        else 
+                            command_status = COMMAND_READ_SENSOR;
+                        break;
+                    case 'D':
+                        command_status = COMMAND_DUMP_SENSOR;
+                        break;
+                    default:
                         command_status = COMMAND_READ_SENSOR;
+                        break;
+
                 }
-                else
-                    command_status = COMMAND_READ_SENSOR;
 
                 break;
 
@@ -322,8 +328,9 @@ void Voltronic::printRatedInfo() {
 
 }
 
-void Voltronic::printSensorParams( float offset, float scale,  float value, int reading, long reading_sum) {   
-    printParam("(%i %.5f %.5f %f %i %f\r\n", _sensor_ptr, offset, scale, value, reading, (float) reading_sum);
+void Voltronic::printSensorParams( float offset, float scale,  float value, int reading, int median, long reading_sum) {  
+    float total =  reading_sum;
+    printParam("(%i %.5f %.5f %f %i %i %f\r\n", _sensor_ptr, offset, scale, value, reading, median, total);
 }
 
 void Voltronic::printPartModel() {

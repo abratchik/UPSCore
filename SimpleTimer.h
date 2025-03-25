@@ -15,8 +15,8 @@ typedef void (*callback)(void);
  */
 class SimpleTimer {
     public:
-        SimpleTimer(HardwareSerial * dbg, unsigned long period = 0, unsigned long duration = 0, bool enabled = false, 
-                     callback on_start = nullptr, callback on_finish = nullptr ){
+        SimpleTimer(unsigned long period = 0, unsigned long duration = 0, bool enabled = false, 
+                    callback on_start = nullptr, callback on_finish = nullptr, HardwareSerial *dbg = nullptr ){
             _dbg = dbg;
             
             _period = period;
@@ -28,11 +28,7 @@ class SimpleTimer {
         };
 
         void start() { 
-            // _dbg->print(_id);
-            // _dbg->print(" timer started with period=");
-            // _dbg->print(_period);
-            // _dbg->print(",duration=");
-            // _dbg->println(_duration);
+
             _counter = 0;
             _enabled = true; 
         };
@@ -73,6 +69,7 @@ class SimpleTimer {
 
         unsigned long _period;
         unsigned long _duration;
+
         unsigned long _counter;
         bool _active;
         bool _enabled;
@@ -89,7 +86,7 @@ class SimpleTimer {
  */
 class SimpleTimerManager {
     public:
-        SimpleTimerManager(HardwareSerial * dbg){
+        SimpleTimerManager(HardwareSerial * dbg = nullptr){
             _dbg = dbg;
         };
 

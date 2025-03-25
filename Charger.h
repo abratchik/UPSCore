@@ -36,7 +36,7 @@ enum ChargerPIDParam {
 
 /**
  * @brief Charger is the class responsible for managing the battery charging. This class uses the battery 
- *        and current sensor readings to manipulate the PWM output on the pin 10 of Arduino.  
+ *        and current sensor readings to manipulate the PWM output on the pin 10 of Arduino Nano.  
  *        Frequency of the PWM output is defined by Timer 1 registers, which are set in the UPSCore.ino setup() function.
  *        The charging circuit through the battery is defined by the PWM signal. Regulation is done with help of PID regulator
  *        where the battery voltage and current are used as inputs, depending on the phase of the charge (CC, CV or backup).
@@ -44,7 +44,7 @@ enum ChargerPIDParam {
 class Charger {
     public:
 
-        Charger(HardwareSerial* stream, Settings * settings, Sensor* current_sensor, Sensor* voltage_sensor);   
+        Charger(Settings * settings, Sensor* current_sensor, Sensor* voltage_sensor, HardwareSerial* dbg = nullptr);   
 
         void set_current_sensor(Sensor* current_sensor) {_current_sensor = current_sensor;};
         void set_voltage_sensor(Sensor* voltage_sensor) {_voltage_sensor = voltage_sensor;};
@@ -78,9 +78,9 @@ class Charger {
 
         bool is_charging() { return _charging; };
 
-        int get_mode() { return _charging_mode; };
+        uint16_t get_mode() { return _charging_mode; };
 
-        void set_mode( int charging_mode ) { _charging_mode = charging_mode; };
+        void set_mode( uint16_t charging_mode ) { _charging_mode = charging_mode; };
 
         void setParam(float value, ChargerPIDParam param) { k[param] = value; };
         float getParam(ChargerPIDParam param) { return k[param]; };
@@ -90,7 +90,7 @@ class Charger {
         void saveParams();
 
     private:
-        HardwareSerial* _stream;
+        HardwareSerial* _dbg;
 
         Settings * _settings;
 
@@ -113,7 +113,7 @@ class Charger {
         // PID params
         float k[CHARGING_NUMPARAM];   
           
-        ChargingStatus _charging_mode;     
+        uint16_t _charging_mode;     
         
         // regulator value (0-1023)  
         int _cout_regv;                     

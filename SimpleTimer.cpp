@@ -58,7 +58,7 @@ SimpleTimer* SimpleTimerManager::create(unsigned long period, unsigned long dura
     
     _num_timers++;
 
-    _simple_timers[_num_timers - 1] = new SimpleTimer(_dbg, period, duration, bstart, on_start, on_finish);
+    _simple_timers[_num_timers - 1] = new SimpleTimer( period, duration, bstart, on_start, on_finish, _dbg );
 
     _simple_timers[_num_timers - 1]->setId(_num_timers);
 

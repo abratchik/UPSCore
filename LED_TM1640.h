@@ -88,8 +88,8 @@ const PROGMEM uint8_t DISPLAY_NUMBER_FONT[] = {
 
   class Display : public AbstractDisplay, public TM1640 {
     public:
-        Display(Interactive *lineups, Charger *charger, RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out, Sensor *v_bat) :
-            AbstractDisplay(lineups, charger, vac_in, vac_out, ac_out, v_bat), 
+        Display(Interactive *lineups, Charger *charger, RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out, Sensor *v_bat, Sensor *c_bat) :
+            AbstractDisplay(lineups, charger, vac_in, vac_out, ac_out, v_bat, c_bat), 
             TM1640(DISPLAY_DA_OUT, DISPLAY_CLK_OUT, DISPLAY_MAX_POS) {
             _blink_state = false;
             _display_mode = DISPLAY_VOLTAGE;

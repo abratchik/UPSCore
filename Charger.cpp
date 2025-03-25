@@ -1,7 +1,7 @@
 #include "Charger.h"
 
 
-Charger::Charger(HardwareSerial* stream, Settings* settings, Sensor* current_sensor, Sensor* voltage_sensor) {
+Charger::Charger(Settings* settings, Sensor* current_sensor, Sensor* voltage_sensor, HardwareSerial* dbg) {
 
     set_current_sensor(current_sensor);
     set_voltage_sensor(voltage_sensor);
@@ -10,7 +10,7 @@ Charger::Charger(HardwareSerial* stream, Settings* settings, Sensor* current_sen
     pinMode(DEFAULT_CHARGER_PWM_OUT, OUTPUT);
 
     _settings = settings;
-    _stream = stream;
+    _dbg = dbg;
 
     k[CHARGING_KP] = 400.0;
     k[CHARGING_KI] = 0.02;

@@ -10,9 +10,6 @@
 #define SENSOR_BAT_V_IN A3            // battery voltage sensor input
 #define SENSOR_BAT_C_IN A7            // battery current sensor input
 
-#define SENSOR_NUMSAMPLES 20          // number of samples 
-#define SENSOR_PERIOD 2               // number of ticks between samples
-
 #define BUZZ_PIN 3                    // beeper output pin
 #define RESET_PIN 4                   // the pin used to trigger reset. Requires 
                                       // 100nF capacitor between this pin and
@@ -25,8 +22,10 @@
 #define INTERACTIVE_RIGHT_RLY_OUT 8   // RY3 relay manage pin
 #define INTERACTIVE_INVERTER_OUT 9    // inverter manage pin
 
-#define TIMER_ONE_SEC   976           // number of ticks to form 1 second
+#define TIMER_ONE_SEC   960           // number of ticks to form 1 second
 #define MAX_NUM_TIMERS  5             // number of timers used
+
+#define SENSOR_NUMSAMPLES 20          // number of samples 
 
 #define INTERACTIVE_DEFAULT_INPUT_VOLTAGE 220.0F    // nominal input VAC 
 #define INTERACTIVE_INPUT_VOLTAGE_DEVIATION 0.08F   // max input VAC deviation
@@ -47,9 +46,16 @@
 #define DISPLAY_DA_OUT   11
 #define DISPLAY_CLK_OUT  13
 
-// #define DISPLAY_TYPE_NONE
-#define DISPLAY_TYPE_LED_TM1640
-// #define DISPLAY_TYPE_LCD_2004A
+// uncomment only one line for enabling display of the supported type
+// #define DISPLAY_TYPE_NONE                        // no display 
+// #define DISPLAY_TYPE_LED_TM1640                  // LED assembly display based on TM1640
+#define DISPLAY_TYPE_LCD_HD44780                      // 20x4 LCD matrix display
+
+#ifdef DISPLAY_TYPE_LCD_HD44780
+#define DISPLAY_I2C_ADDRESS     0x27
+#define DISPLAY_SCREEN_WIDTH    20
+#define DISPLAY_SCREEN_HEIGHT   4
+#endif
 
 #define DISPLAY_MAX_BRIGHTNESS 4                    // maximum brightness level of the display backlit
 #define DISPLAY_DEFAULT_BRIGHTNESS 1                // default brightness level of the display backlit
@@ -64,8 +70,6 @@
 #define ACTUAL_VA 1200
 #define FIRMWARE_VERSION "001.00"
 
-const int DISPLAY_BLINK_FREQ      = TIMER_ONE_SEC * 0.5;
-
 // fully drained battery voltage
 const static float INTERACTIVE_MIN_V_BAT = INTERACTIVE_MIN_V_BAT_CELL * INTERACTIVE_NUM_CELLS;    
 // max battery voltage             
@@ -78,5 +82,7 @@ const static float INTERACTIVE_V_BAT_DELTA = INTERACTIVE_STBY_V_BAT - INTERACTIV
 const static float INTERACTIVE_TOTAL_BATTERY_CAP = INTERACTIVE_BATTERY_AH * 
                                                    INTERACTIVE_NUM_CELLS * 
                                                    INTERACTIVE_NUM_BATTERY_PACKS;
+// number of ticks between samples
+const int SIMPLE_SENSOR_PERIOD = TIMER_ONE_SEC / SENSOR_NUMSAMPLES;
 
 #endif

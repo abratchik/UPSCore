@@ -15,19 +15,25 @@
 
 Settings settings;
 
-SimpleTimerManager timer_manager(&Serial);
+SimpleTimerManager timer_manager;
 
 //init sensors
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.875, SENSOR_NUMSAMPLES, SENSOR_PERIOD );   // AC input voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, SENSOR_NUMSAMPLES, SENSOR_PERIOD ); // AC output voltage - 300V max
-Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES, SENSOR_PERIOD );  // AC output current 
-Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, SENSOR_NUMSAMPLES, SENSOR_PERIOD );   // Battery voltage 
-Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, SENSOR_NUMSAMPLES, SENSOR_PERIOD );    // Battery current +/- 29.9A
 
-SensorManager sensor_manager(&Serial, &settings);
+// AC input voltage - 300V max
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.375, 30, 2 ); 
+// AC output voltage - 300V max
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, 30, 2, 1 );   
+// AC output current 
+Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES, 5, 2 );  
+// Battery voltage
+Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, SENSOR_NUMSAMPLES, 5 ,3 );    
+// Battery current +/- 29.9A
+Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, SENSOR_NUMSAMPLES, 5, 4 );    
+
+SensorManager sensor_manager(&settings);
 
 // init the charger on DEFAULT_CHARGER_PWM_OUT pin
-Charger charger(&Serial, &settings, &c_bat, &v_bat);
+Charger charger(&settings, &c_bat, &v_bat);
 void start_charging();
 SimpleTimer* delayed_charge = nullptr;
 
@@ -43,10 +49,12 @@ void start_self_test();
 void stop_self_test();
 SimpleTimer* self_test = nullptr;
 
+#ifndef DISPLAY_TYPE_NONE
 // init Display module
-Display display(&lineups, &charger, &vac_in, &vac_out, &ac_out, &v_bat);
+Display display(&lineups, &charger, &vac_in, &vac_out, &ac_out, &v_bat, &c_bat);
 void refresh_display();
 SimpleTimer* display_refresh_timer = nullptr;
+#endif
 
 Voltronic serial_protocol( &Serial, 'V' );
 
@@ -63,11 +71,11 @@ void setup() {
   serial_protocol.printPartModel();
 
   // register sensors
-  sensor_manager.registerSensor(&vac_in);
-  sensor_manager.registerSensor(&vac_out);
-  sensor_manager.registerSensor(&ac_out);
-  sensor_manager.registerSensor(&v_bat);
-  sensor_manager.registerSensor(&c_bat);
+  sensor_manager.register_sensor(&vac_in);
+  sensor_manager.register_sensor(&ac_out);
+  sensor_manager.register_sensor(&vac_out);
+  sensor_manager.register_sensor(&v_bat);
+  sensor_manager.register_sensor(&c_bat);
   
   // load params from EEPROM
   sensor_manager.loadParams();
@@ -76,7 +84,9 @@ void setup() {
   // create timers
   delayed_charge = timer_manager.create( 0,TIMER_ONE_SEC,false,nullptr,start_charging);
   beeper_timer = timer_manager.create(0,0,false,beep_on, beep_off);
+#ifndef DISPLAY_TYPE_NONE 
   display_refresh_timer = timer_manager.create(DISPLAY_BLINK_FREQ, 0, false, refresh_display);
+#endif
   self_test = timer_manager.create(0, MIN_SELFTEST_DURATION * 60 * TIMER_ONE_SEC, false, start_self_test, stop_self_test);
   output_power_timer = timer_manager.create();
 
@@ -84,8 +94,8 @@ void setup() {
 
   // Timer 0 976Hz. Used for display refresh, blinker and sensor readings.
   TCNT0 = 0;
-  TCCR0A = _BV(WGM00)|_BV(WGM01);            /* Phase Correct, pins not activated */
-  TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Phase Correct, Prescaler = x64     */
+  TCCR0A = _BV(WGM00)|_BV(WGM01);            /* Fast PWM, pins not activated */
+  TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Fast PWM, Prescaler = x64     */
   OCR0A = 255;
   TIMSK0 = _BV(OCIE0A);
 
@@ -93,17 +103,24 @@ void setup() {
   TCCR1A = _BV(WGM10) | _BV(WGM11);  // 10bit
   TCCR1B = _BV(WGM12) | _BV(CS10);   // x1 fast pwm
 
-  sei(); // resume interrupts
+ // accelerate analogRead
 
-  display.initialize();
+  ADCSRA |= _BV(ADPS2); 
+  ADCSRA &= ~_BV(ADPS1);
+  ADCSRA &= ~_BV(ADPS0);
+
+  sei(); // resume interrupts
 
   pinMode(BUZZ_PIN, OUTPUT);
 
   beep_on();
   delay(1000);
   beep_off();
-
+  
+  #ifndef DISPLAY_TYPE_NONE 
+  display.initialize();
   display_refresh_timer->start();
+  #endif
 
   serial_protocol.printPrompt();
   serial_protocol.writeEOL();
@@ -127,8 +144,10 @@ ISR(TIMER0_COMPA_vect) {
 void loop() {
 
   if(vac_in.ready() && ac_out.ready() && v_bat.ready() ) {
-
+    
+    // sensor_manager.suspend();
     RegulateStatus result = lineups.regulate(timer_manager.getTicks());
+    // sensor_manager.resume();
 
     switch(result) {
 
@@ -174,7 +193,9 @@ void loop() {
           delayed_charge->start( 0, 3 * TIMER_ONE_SEC );          
         }
 
+        // sensor_manager.suspend();
         charger.regulate(timer_manager.getTicks());
+        // sensor_manager.resume();
 
         break;
 
@@ -285,15 +306,16 @@ void loop() {
           break;
 #endif        
         case COMMAND_READ_SENSOR:
-          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() ) {
+          if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() ) {
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
             serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
                                               sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading(), 
                                               sensor->get_prev_reading(), 
+                                              sensor->get_median(),
                                               sensor->get_reading_sum());
           }
-          else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
+          else if(serial_protocol.getSensorPtr() == sensor_manager.get_num_sensors()) {
             serial_protocol.printParam("#%i %i %f %f %f %f %f %i\r\n",
                                               charger.is_charging(),
                                               charger.get_mode(),
@@ -305,9 +327,24 @@ void loop() {
                                               charger.get_output());
           }
           break;
-
+        case COMMAND_DUMP_SENSOR:
+          if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() ) {
+            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
+            if(sensor->ready()) {
+              sensor->suspend();
+              int* readings = sensor->get_readings();
+              Serial.write('(');
+              for(int i=0; i < sensor->get_num_samples(); i++) {
+                if(i) Serial.write(',');
+                Serial.print(*(readings+i)); 
+              }
+              Serial.println();
+              sensor->resume();
+            }
+          }
+          break;
         case COMMAND_TUNE_SENSOR:
-          if( serial_protocol.getSensorPtr() < sensor_manager.getNumSensors() && 
+          if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() && 
               serial_protocol.getSensorParam() < 2 ) {
 
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
@@ -316,7 +353,7 @@ void loop() {
                                               sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
           }
-          else if(serial_protocol.getSensorPtr() == sensor_manager.getNumSensors()) {
+          else if(serial_protocol.getSensorPtr() == sensor_manager.get_num_sensors()) {
             charger.setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
             serial_protocol.printParam("(%f %f %f %f %f %f %f %i %i %f %i\r\n",
                                         charger.getParam(CHARGING_KP),
@@ -343,8 +380,10 @@ void loop() {
       }
     } 
 
-    // refresh the display based on sensor readings and the lineups state
+#ifndef DISPLAY_TYPE_NONE
+    // refresh the display based on sensor readings, lineups and charger state
     display.refresh();
+#endif
 
   }
 
@@ -352,10 +391,12 @@ void loop() {
 
 }
 
+#ifndef DISPLAY_TYPE_NONE
 // initiate display refresh
 void refresh_display() {
   display.init_refresh();
 }
+#endif
 
 void beep_on() {
   digitalWrite(BUZZ_PIN, ( bitRead(lineups.getStatus(), BEEPER_IS_ACTIVE) ? HIGH: LOW ));

@@ -40,7 +40,8 @@ enum ExecuteCommand {
 #endif
     COMMAND_READ_SENSOR,
     COMMAND_TUNE_SENSOR,
-    COMMAND_SAVE_SENSORS
+    COMMAND_SAVE_SENSORS,
+    COMMAND_DUMP_SENSOR
 };
 
 enum VoltronicParam {
@@ -73,7 +74,7 @@ enum VoltronicParam {
 class Voltronic {
 
     public:
-        Voltronic( HardwareSerial* stream, char protocol = VOLTRONIC_DEFAULT_PROTOCOL );
+        Voltronic(HardwareSerial* stream, char protocol = VOLTRONIC_DEFAULT_PROTOCOL );
         
         void begin( int baud_rate = VOLTRONIC_DEFAULT_BAUD_RATE );
 
@@ -92,7 +93,7 @@ class Voltronic {
         float getSensorParamValue() { return _sensor_param_value; };
         int getSensorParam() { return _sensor_param; };
 
-        void printSensorParams(float offset, float scale, float value = 0, int reading = 0, long reading_sum = 0L);
+        void printSensorParams(float offset, float scale, float value = 0, int reading = 0, int median=0, long reading_sum = 0L);
 
         void printParam(const char* fmp, ...);
 
