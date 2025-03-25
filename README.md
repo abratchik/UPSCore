@@ -83,14 +83,14 @@ The comprehensive list of sensors is represented in the table below. Each sensor
         <td>0</td>
         <td>Input voltage</td>
         <td>0...300VAC</td>
-        <td>0.875</td>
+        <td>2.05</td>
         <td>0</td>
     </tr>
     <tr>
         <td>1</td>
         <td>Output voltage</td>
         <td>0...300VAC</td>
-        <td>0.375</td>
+        <td>2.05</td>
         <td>0</td>
     </tr> 
     <tr>
@@ -117,10 +117,10 @@ The comprehensive list of sensors is represented in the table below. Each sensor
 </tbody>
 </table>
 
-All sensors are estimated 490 times per second. Readings are accumulated and converted into the running average, with the period of 20 readings.
+Two types of sensors are supported - Running Average (for non-periodic signal) and true RMS for AC voltage.  
 
 ## Charger
-Battery charging is kicking in in 3 seconds when the input VAC is within the acceptable limits. The algorithm of charging is "constant current->constant voltage->standby":
+Battery charging is kicking in 2 seconds when the input VAC is within the acceptable limits. The algorithm of charging is "constant current->constant voltage->standby":
 
 1. Constant Current. The charger is maintaining the battery current at 10% of the battery capacity till the voltage is reaching the maximum as defined for the cell per cycle use.
 2. Constant voltage. The charger is maintaining the maximum voltage per cell till the charging current become less than 2% of the battery capacity.
@@ -148,7 +148,7 @@ Regulation of the current and voltage is based on the PID regulator. Values of P
 </tbody>
 </table>
 
-Output of the charger is a PWM signal on the pin 10, which has maximum duty cycle set at 50% and frequency 15.6kHz. 
+Output of the charger is a PWM signal on the pin 10. 
 
 Charger parameters can be changed similar to sensor parameters, by the command <b>VNPMVK...K</b> where N=5, M is the index of the parameter and K...K is the new value. Dumping of parameters canbe invoked by <b>V5</b> command, also similar to sensors. Example of the response is below:
 
@@ -170,7 +170,23 @@ Values are space-delimited and come as follows:
 - output value of the charger regulator. Can be from 0 to 512. The maximum value corresponds to the 50% duty cycle.
 
 ## Display
-Indication of the line-interactive modes and parameters can be done in many different ways. The Display class is assuming the popular TM1640 LED driver chip, which can support various UPS LED displays, custom or not.  
+Indication of the line-interactive modes and parameters can be done in many different ways. The Display class is supporting several options, which are defined in the **config.h** header by modifying corresponding macro as listed below.
+
+```
+// uncomment only one line for enabling display of the supported type
+// #define DISPLAY_TYPE_NONE                        // no display. Saves resources at the expense of real-time visual info on the UPS. 
+// #define DISPLAY_TYPE_LED_TM1640                  // LED assembly display based on TM1640
+// #define DISPLAY_TYPE_LCD_HD44780                 // 16x2 or 20x4 LCD matrix display based on HD44780
+
+// allows to configure display I2C address and resolution for HD44780
+#ifdef DISPLAY_TYPE_LCD_HD44780
+#define DISPLAY_I2C_ADDRESS     0x27
+#define DISPLAY_SCREEN_WIDTH    20
+#define DISPLAY_SCREEN_HEIGHT   4
+#endif
+```
+
+  
 
 ## License
 [GPLv3](/LICENSE)

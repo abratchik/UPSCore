@@ -18,14 +18,14 @@ void Display::on_refresh() {
 
     switch(_display_mode) {
         case DISPLAY_FREQ:
-        setInputReading( (_vac_in->get_period() > 0? round(TIMER_ONE_SEC / _vac_in->get_period()) : 0), UNIT_HZ );
-        setOutputReading( (_vac_out->get_period() > 0? round(TIMER_ONE_SEC / _vac_out->get_period()) : 0), UNIT_HZ);
-        break;
+            setInputReading( (_vac_in->get_period() > 0? round(TIMER_ONE_SEC / _vac_in->get_period()) : 0), UNIT_HZ );
+            setOutputReading( (_vac_out->get_period() > 0? round(TIMER_ONE_SEC / _vac_out->get_period()) : 0), UNIT_HZ);
+            break;
 
         default:
-        setInputReading( _vac_in->readingR(), UNIT_VAC );
-        setOutputReading( _vac_out->readingR(), UNIT_VAC );
-        break;
+            setInputReading( _vac_in->readingR(), UNIT_VAC );
+            setOutputReading( _vac_out->readingR(), UNIT_VAC );
+            break;
     }
 
     float battery_level = _lineups->getBatteryLevel();
@@ -68,6 +68,7 @@ void Display::setReading( int reading, ReadingUnit mode, int start, int stop ) {
         uint8_t mod_flag = ( mode > 0 ) && ( grid_mode == mode ) ;
         board[grid] = pgm_read_byte( DISPLAY_NUMBER_FONT + ( digits % base ) ) | mod_flag;
         digits /= base;
+        if(!digits) break;
     }
 }
 

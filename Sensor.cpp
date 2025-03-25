@@ -59,21 +59,10 @@ void Sensor::reset() {
     on_reset();
 }
 
-float Sensor::compute_reading() {
+void Sensor::compute_reading() {
+    if(!_ready && _counter == 0) sample();
     float total = _reading_sum;
-    return transpose_reading( total / (_ready? _num_samples : _counter ) );
-}
-
-float Sensor::reading() {
-    if(_counter == 0) sample();
-
-    if(_update) {
-        _avg_reading = compute_reading();
-        _update = false;
-    }
-
-    return _avg_reading;
-        
+    _avg_reading  = transpose_reading( total / (_ready? _num_samples : _counter ) );
 }
 
 RMSSensor::RMSSensor(int pin, float offset,  float scale, int num_samples, int sampling_period , int sampling_phase) :
@@ -81,9 +70,10 @@ RMSSensor::RMSSensor(int pin, float offset,  float scale, int num_samples, int s
     reset();
 } 
 
-float RMSSensor::compute_reading() {
+void RMSSensor::compute_reading() {
+    if(!_ready && _counter == 0) sample();
     float total_delta_sq = _reading_sum;
-    return transpose_reading(sqrtf( total_delta_sq / ( _ready? _num_samples : _counter )));  
+    _avg_reading = transpose_reading(sqrtf( total_delta_sq / ( _ready? _num_samples : _counter )));  
 }
 
 void RMSSensor::increment_sum(int reading) {
@@ -132,7 +122,7 @@ void SensorManager::register_sensor(Sensor* sensor) {
 }
 
 void SensorManager::sample() {
-    if(!_active) return;
+    // if(!_active) return;
     for(int i=0; i < _num_sensors; i++)
         _sensors[i]->sample();
 }

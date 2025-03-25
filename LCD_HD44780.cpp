@@ -56,37 +56,8 @@ void Display::on_refresh() {
 };
 
 void Display::print_number(float val, int len, int dec, int base, bool unsgn) {
-    memset(_buf, 0x0, 7);
-
-    int digits = abs(val * pow(10, dec));
-    bool minus = (val < 0) && !unsgn;
-
-    for(int i=0; i < len + (dec?1:0); i++) {
-        int index = len - i - (dec?0:1);
-        if( digits ||  i <= dec ) {
-            if(i != dec || dec == 0 ) {
-                int digit = digits % base;
-                *(_buf + index) = ( digit < 10? 0x30 : 0x37 ) + digit ;
-                digits /= base;
-            }
-            else {
-                *(_buf + index) = '.';
-            }
-        }
-        else if( dec && (i == dec + 1) ) {
-            *(_buf + index) = 0x30;
-        }
-        else if(minus) {
-            *(_buf + index) = '-';
-            minus = false;
-        }
-        else {
-            *(_buf + index) = i?0x20:0x30;
-        }
-    }
-
+    ex_print_number_to_buf(_buf, val, len, dec, base, unsgn);
     print(_buf);
-    
 }
 
 #endif

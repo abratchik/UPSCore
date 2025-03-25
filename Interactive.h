@@ -7,10 +7,8 @@
 #include "Sensor.h"
 #include "Charger.h"
 
-// time when the UPS stays on battery after failure even if the input is back to normal
-// needed to protect the invertor from frequent on/off cycles when the input voltage is oscillating
-// around the lowest acceptable limit.
-const int INVERTER_GRACE_PERIOD = TIMER_ONE_SEC * 2;
+// number of ticks for inverter to set the output voltage within limits
+// const int INVERTER_GRACE_PERIOD = 100;
 
 enum InteractiveStatusFlags {
     BEEPER_IS_ACTIVE,           // Beeper activated

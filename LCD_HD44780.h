@@ -2,6 +2,7 @@
 #define LCD_HD44780_h
 
 #include "config.h"
+#include "utilities.h"
 
 #ifdef DISPLAY_TYPE_LCD_HD44780
 

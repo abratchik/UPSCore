@@ -1,6 +1,8 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "utilities.h"
+
 #include "avr/wdt.h"
 #include "Settings.h"
 
@@ -20,9 +22,9 @@ SimpleTimerManager timer_manager;
 //init sensors
 
 // AC input voltage - 300V max
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0, 0.375, 30, 2 ); 
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0.0F, 2.05F, 30, 2 ); 
 // AC output voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 0.375, 30, 2, 1 );   
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.05F, 30, 2, 1 );   
 // AC output current 
 Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES, 5, 2 );  
 // Battery voltage
@@ -56,7 +58,7 @@ void refresh_display();
 SimpleTimer* display_refresh_timer = nullptr;
 #endif
 
-Voltronic serial_protocol( &Serial, 'V' );
+Voltronic serial_protocol( &Serial );
 
 void output_power_on();
 void output_power_off();
@@ -68,7 +70,8 @@ void setup() {
 
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
   
-  serial_protocol.printPartModel();
+  Serial.write(VOLTRONIC_PROMPT);
+  Serial.println(PART_MODEL);
 
   // register sensors
   sensor_manager.register_sensor(&vac_in);
@@ -122,8 +125,7 @@ void setup() {
   display_refresh_timer->start();
   #endif
 
-  serial_protocol.printPrompt();
-  serial_protocol.writeEOL();
+  Serial.println(VOLTRONIC_PROMPT);
 
   wdt_enable(WDTO_2S);
 }
@@ -316,7 +318,7 @@ void loop() {
                                               sensor->get_reading_sum());
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.get_num_sensors()) {
-            serial_protocol.printParam("#%i %i %f %f %f %f %f %i\r\n",
+            ex_printf_to_stream(&Serial, "#%i %i %f %f %f %f %f %i\r\n",
                                               charger.is_charging(),
                                               charger.get_mode(),
                                               charger.get_current(),                                             
@@ -349,13 +351,14 @@ void loop() {
 
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
             sensor->setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
+            sensor->compute_reading();
             serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
                                               sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading());
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.get_num_sensors()) {
             charger.setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
-            serial_protocol.printParam("(%f %f %f %f %f %f %f %i %i %f %i\r\n",
+            ex_printf_to_stream(&Serial, "(%f %f %f %f %f %f %f %i %i %f %i\r\n",
                                         charger.getParam(CHARGING_KP),
                                         charger.getParam(CHARGING_KI),
                                         charger.getParam(CHARGING_KD),

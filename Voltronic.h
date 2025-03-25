@@ -12,7 +12,9 @@
 #include <Arduino.h>
 
 #include "config.h"
+#include "utilities.h"
 
+static const char VOLTRONIC_PROMPT = '#';
 static const float MIN_SELFTEST_DURATION = 0.2F;
 
 enum StatusBit {
@@ -74,7 +76,7 @@ enum VoltronicParam {
 class Voltronic {
 
     public:
-        Voltronic(HardwareSerial* stream, char protocol = VOLTRONIC_DEFAULT_PROTOCOL );
+        Voltronic(HardwareSerial* stream );
         
         void begin( int baud_rate = VOLTRONIC_DEFAULT_BAUD_RATE );
 
@@ -95,13 +97,6 @@ class Voltronic {
 
         void printSensorParams(float offset, float scale, float value = 0, int reading = 0, int median=0, long reading_sum = 0L);
 
-        void printParam(const char* fmp, ...);
-
-        void printPartModel();
-        void printPrompt();
-        
-        void writeEOL();
-
     private:
 
         char _buf[COMMAND_BUFFER_SIZE];
@@ -113,24 +108,12 @@ class Voltronic {
 
         uint8_t _status;
 
-        char _protocol = VOLTRONIC_DEFAULT_PROTOCOL;
-
         // sensor manipulation params
         int _sensor_ptr = 0;
         float _sensor_param_value = 0;
         int _sensor_param = 0;
 
-        void writeFloat( float val , int length, int dec );
-        void writeInt( int val, int length );
-        void writeBin( uint8_t val );
-
-        float parseFloat(int startpos, int len);
-
-        void printFixed(const char* str, int len);
         void printRatedInfo();
-
-        int get_width_modifier(const char * modifier, int * index);
-        int get_precision_modifier(const char * modifier, int * index);
 
 };
 

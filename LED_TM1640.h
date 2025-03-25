@@ -97,7 +97,7 @@ const PROGMEM uint8_t DISPLAY_NUMBER_FONT[] = {
 
         void initialize();
 
-        void toggle_display_mode() { _display_mode = (_display_mode++) % DISPLAY_NUMMODES ;};
+        void toggle_display_mode() { _display_mode = (++_display_mode) % DISPLAY_NUMMODES ;};
         void set_display_mode(int mode) { _display_mode = mode; };
         int get_display_mode() { return _display_mode; };
      

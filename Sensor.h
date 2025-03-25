@@ -40,9 +40,8 @@ class Sensor {
         // Reset all the previously taken measurements 
         void reset();
 
-        // Get the reading of the sensor, converted to measurement units (offset/scale applied).
-        // If sample() was not called before calling this function then instant reading will be returned.
-        float reading();
+
+        float reading(){ return _avg_reading; };
         
         //  triggered when the sensor is reset
         virtual void on_reset() { ;};
@@ -53,7 +52,8 @@ class Sensor {
         // accumulate reading in the _reading sum
         virtual void increment_sum(int reading);
 
-        virtual float compute_reading();
+        // Compute the reading of the sensor, converted to measurement units (offset/scale applied).
+        virtual void compute_reading();
         
         // rounded reading
         long readingR() { return round(reading()); };
@@ -122,7 +122,7 @@ class RMSSensor : public Sensor {
 
         void increment_sum(int reading) override;
 
-        float compute_reading() override;
+        void compute_reading() override;
 
         void on_reset() override {
             _median = DEFAULT_MEDIAN_READING;
@@ -166,7 +166,7 @@ class SensorManager {
         
         SensorManager( Settings * settings , HardwareSerial * dbg = nullptr) {
             _dbg = dbg;
-            _active = true;
+            // _active = true;
             _settings = settings;
         };
 
@@ -185,8 +185,8 @@ class SensorManager {
         // load sensor params from EEPROM. If sensor params were not saved before, they are initialized in EEPROM
         void loadParams();
 
-        void suspend() { _active = false; };
-        void resume() { _active = true; };
+        // void suspend() { _active = false; };
+        // void resume() { _active = true; };
 
     private:
         HardwareSerial * _dbg;
@@ -196,7 +196,7 @@ class SensorManager {
         Sensor* _sensors[MAX_NUM_SENSORS];
         int _num_sensors = 0;
 
-        bool _active;
+        // bool _active;
 
 };
 

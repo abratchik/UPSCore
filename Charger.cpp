@@ -78,7 +78,9 @@ void Charger::regulate(unsigned long ticks) {
     }    
 
     // read sensors
+    _voltage_sensor->compute_reading();
     float reading_v = _voltage_sensor->reading();
+    _current_sensor->compute_reading();
     float reading_c = _current_sensor->reading();
 
     if(reading_v <= _min_battery_voltage) {

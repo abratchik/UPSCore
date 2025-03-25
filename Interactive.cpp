@@ -21,6 +21,11 @@ Interactive::Interactive( RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out,
 }
 
 RegulateStatus Interactive::regulate(unsigned long ticks) {
+
+    _vac_in->compute_reading();
+    _vac_out->compute_reading();
+    _ac_out->compute_reading();
+    _v_bat->compute_reading();
     
     _battery_level = max(min((_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA, 1.0F), 0.0F) ;
     writeStatus(SELF_TEST, _selfTestMode);
@@ -61,10 +66,8 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     float nominal_hysteresis = _hysteresis * _nominal_vac_input;       
 
     // wrong output voltage protection after inverter
-    if(_batteryMode && _vac_out->ready()) {
-        float vac_output = _vac_out->reading();
-        if( (abs(vac_output - _nominal_vac_input)  > nominal_deviation) && 
-             (ticks - _last_fail_time > INVERTER_GRACE_PERIOD)   ) 
+    if(_batteryMode ) {
+        if( (abs(_vac_out->reading() - _nominal_vac_input)  > nominal_deviation)   ) 
             writeStatus(UPS_FAULT, true);
     }
 
@@ -86,7 +89,7 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
         writeStatus(UTILITY_FAIL, true);
     }
 
-    if( utility_fail || self_test || (ticks - _last_fail_time < INVERTER_GRACE_PERIOD) )  {
+    if( utility_fail || self_test || (ticks - _last_fail_time < TIMER_ONE_SEC * 2) )  {
 
         toggleInput(false);
 
