@@ -21,11 +21,6 @@ Interactive::Interactive( RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out,
 }
 
 RegulateStatus Interactive::regulate(unsigned long ticks) {
-
-    _vac_in->compute_reading();
-    _vac_out->compute_reading();
-    _ac_out->compute_reading();
-    _v_bat->compute_reading();
     
     _battery_level = max(min((_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA, 1.0F), 0.0F) ;
     writeStatus(SELF_TEST, _selfTestMode);
@@ -67,7 +62,7 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
 
     // wrong output voltage protection after inverter
     if(_batteryMode ) {
-        if( (abs(_vac_out->reading() - _nominal_vac_input)  > nominal_deviation)   ) 
+        if( _vac_out->reading() - _nominal_vac_input  > nominal_deviation )   
             writeStatus(UPS_FAULT, true);
     }
 

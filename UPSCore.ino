@@ -22,15 +22,15 @@ SimpleTimerManager timer_manager;
 //init sensors
 
 // AC input voltage - 300V max
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0.0F, 2.05F, 30, 2 ); 
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0.0F, 2.05F, 20, 2 ); 
 // AC output voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.05F, 30, 2, 1 );   
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.05F, 20, 2, 1 );   
 // AC output current 
-Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, SENSOR_NUMSAMPLES, 5, 2 );  
+Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20, 5, 2 );  
 // Battery voltage
-Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, SENSOR_NUMSAMPLES, 5 ,3 );    
+Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, 20, 5 ,3 );    
 // Battery current +/- 29.9A
-Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, SENSOR_NUMSAMPLES, 5, 4 );    
+Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, 20, 5, 4 );    
 
 SensorManager sensor_manager(&settings);
 
@@ -71,7 +71,8 @@ void setup() {
   serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
   
   Serial.write(VOLTRONIC_PROMPT);
-  Serial.println(PART_MODEL);
+  ex_print_str_to_stream( &Serial, PART_MODEL, true);
+  Serial.println();
 
   // register sensors
   sensor_manager.register_sensor(&vac_in);
@@ -147,6 +148,13 @@ void loop() {
 
   if(vac_in.ready() && ac_out.ready() && v_bat.ready() ) {
     
+    // calculate sensors
+    vac_in.compute_reading();
+    vac_out.compute_reading();
+    ac_out.compute_reading();
+    v_bat.compute_reading();
+    c_bat.compute_reading();
+
     // sensor_manager.suspend();
     RegulateStatus result = lineups.regulate(timer_manager.getTicks());
     // sensor_manager.resume();
@@ -209,7 +217,7 @@ void loop() {
           self_test->stop();
           charger.stop();
 
-          beep_on();
+          // beep_on();
         }
 
         break;
@@ -313,7 +321,7 @@ void loop() {
             serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
                                               sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading(), 
-                                              sensor->get_prev_reading(), 
+                                              sensor->get_last_reading(), 
                                               sensor->get_median(),
                                               sensor->get_reading_sum());
           }

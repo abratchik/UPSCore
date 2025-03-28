@@ -102,14 +102,14 @@ class SimpleTimerManager {
 
         SimpleTimer* get(int timer_id);
 
-        int getNumTimers() { return _num_timers; };
+        uint8_t getNumTimers() { return _num_timers; };
 
     private:
 
         HardwareSerial * _dbg;
 
         SimpleTimer* _simple_timers[MAX_NUM_TIMERS];
-        int _num_timers = 0;
+        uint8_t _num_timers = 0;
 
         unsigned long _ticks = 0L;
 };

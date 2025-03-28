@@ -100,7 +100,7 @@ class Voltronic {
     private:
 
         char _buf[COMMAND_BUFFER_SIZE];
-        int _buf_ptr = 0;
+        uint8_t _buf_ptr = 0;
         
         HardwareSerial* _stream;
 
@@ -109,9 +109,9 @@ class Voltronic {
         uint8_t _status;
 
         // sensor manipulation params
-        int _sensor_ptr = 0;
+        uint8_t _sensor_ptr = 0;
         float _sensor_param_value = 0;
-        int _sensor_param = 0;
+        uint8_t _sensor_param = 0;
 
         void printRatedInfo();
 

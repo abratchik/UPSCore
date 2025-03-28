@@ -36,31 +36,35 @@ void ex_print_number_to_buf(char* _buf, float val, int len, int dec, int base, b
     
 }
 
-void ex_print_number_to_stream(HardwareSerial* stream, float val, int len, int dec) {
+void ex_print_number_to_stream(Print* stream, float val, int len, int dec) {
     char * buf = malloc(len+2);
     ex_print_number_to_buf(buf, val, len, dec );
     stream->print(buf);
     free(buf);
 }
 
-void ex_print_binary_to_stream(HardwareSerial* stream,  uint8_t val) {
+void ex_print_binary_to_stream(Print* stream,  uint8_t val) {
     for(int i=7; i>=0; i--) {
         stream->write(0x30 + ((val >> i) & 0x01));
     }
 }
 
-void ex_print_str_to_stream(HardwareSerial* stream, const char* str, int len) {
-    int ptr=0;
-    while(str[ptr] != '\0' && ptr < len) {
-        stream->write(str[ptr]);
+void ex_print_str_to_stream(Print* stream, const char* str, bool pgm, int fix_len) {
+    uint16_t ptr = 0;
+    uint16_t len = pgm ?  strlen_P(str): strlen(str);
+    while( ptr < len) {
+        char c = pgm? (char) pgm_read_byte(&(str[ptr])) : str[ptr];
+        stream->write(c);
         ptr++;
     }
-    for(int i=ptr; i < len; i++) {
-        stream->write(' ');
-    } 
+    if(fix_len > len) {
+        for(int i=len; i < fix_len; i++) {
+            stream->write(' ');
+        } 
+    }
 }
 
-void ex_printf_to_stream(HardwareSerial* stream, const char* fmt, ...) {
+void ex_printf_to_stream(Print* stream, const char* fmt, ...) {
     va_list args;
     int wid, prec;
 
@@ -95,12 +99,10 @@ void ex_printf_to_stream(HardwareSerial* stream, const char* fmt, ...) {
                     }
                     break;
                 case 's':
-                    if( wid > 0 ) {
-                        ex_print_str_to_stream(stream, (const char *) va_arg(args, const char*), wid);
-                    }
-                    else {
-                        stream->print((const char *) va_arg(args, const char*));
-                    }
+                    ex_print_str_to_stream(stream, (const char *) va_arg(args, const char*),false, wid);
+                    break;
+                case 'S':
+                    ex_print_str_to_stream(stream, (const char *) va_arg(args, const char*),true, wid);
                     break;
                 default:
                     stream->write(*(fmt + index));

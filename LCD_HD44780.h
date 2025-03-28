@@ -7,15 +7,29 @@
 #ifdef DISPLAY_TYPE_LCD_HD44780
 
 #if DISPLAY_SCREEN_HEIGHT > 2
-#define DISPLAY_ROW_0 "Inp:   0.0VAC,  0Hz"
-#define DISPLAY_ROW_1 "Out:   0.0VAC,  0Hz"
-#define DISPLAY_ROW_2 "Bat:  0.0V,   0.00A"
-#define DISPLAY_ROW_3 "C:  0\% L:  0\%"
+const PROGMEM char DISPLAY_ROW_0[] = "I:   0.0V,  0Hz";
+const PROGMEM char DISPLAY_ROW_1[] = "O:   0.0V,  0Hz";
+const PROGMEM char DISPLAY_ROW_2[] = "B:   0.0V,  0.00A";
+const PROGMEM char DISPLAY_ROW_3[] = "C:  0\% L:  0\%";
+
+const PROGMEM char* const DISPLAY_ROWS[] = {
+    DISPLAY_ROW_0,
+    DISPLAY_ROW_1,
+    DISPLAY_ROW_2,
+    DISPLAY_ROW_3
+};
 #else
-#define DISPLAY_ROW_0 "I:  0V O:  0V"
-#define DISPLAY_ROW_1 "C:  0\% L:  0\%"
+const PROGMEM char DISPLAY_ROW_0[]  = "I:  0V O:  0V";
+const PROGMEM char DISPLAY_ROW_1[] = "C:  0\% L:  0\%";
+
+const PROGMEM char* const DISPLAY_ROWS[] = {
+    DISPLAY_ROW_0,
+    DISPLAY_ROW_1
+};
 #endif
 
+#define DISPLAY_STATUS_OK   " OK"
+#define DISPLAY_STATUS_NOK  "NOK"
 
 #include "Display.h"
 #include <LiquidCrystal_I2C.h>
@@ -34,8 +48,12 @@ class Display : public AbstractDisplay, public LiquidCrystal_I2C {
         void setup_display() override;
     
     private:
-        char _buf[7];
+        char _buf[DISPLAY_SCREEN_WIDTH];
         void print_number(float val, int len , int dec, int base = DEC, bool unsgn = false);
+        void pgm_print_string(const void* str);
+
+        uint8_t _update_display_rows;
+        void update_display_rows();
 
 };
 

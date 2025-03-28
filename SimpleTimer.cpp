@@ -46,7 +46,7 @@ void SimpleTimerManager::tick() {
 
     _ticks++;
 
-    for(int i=0; i < _num_timers; i++) 
+    for(uint8_t i=0; i < _num_timers; i++) 
         _simple_timers[i]->tick();
     
 }
@@ -67,7 +67,7 @@ SimpleTimer* SimpleTimerManager::create(unsigned long period, unsigned long dura
 
 SimpleTimer* SimpleTimerManager::get( int timer_id ) {
        
-    for(int i=0; i < _num_timers; i++) {
+    for(uint8_t i=0; i < _num_timers; i++) {
         SimpleTimer* timer = *(_simple_timers+i);
         if(timer->getId() == timer_id)
             return timer;

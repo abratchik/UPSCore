@@ -81,7 +81,7 @@ ExecuteCommand Voltronic::executeCommand() {
                 }
                 else if( _buf[1] == 'M' && _buf[2] == 'D' ) {
 
-                    ex_printf_to_stream(_stream, "(%15s %7i %3.0f %3s %3.0f %3.0f %2i %3.1f\r\n",
+                    ex_printf_to_stream(_stream, "(%15S %7i %3.0f %3s %3.0f %3.0f %2i %3.1f\r\n",
                         PART_NUMBER,
                         RATED_VA,
                         (float)100.0F * ACTUAL_VA / RATED_VA,
@@ -95,7 +95,7 @@ ExecuteCommand Voltronic::executeCommand() {
                 }
                 else if( _buf[1] == 'M' && _buf[2] == 'F' ) {
                     _stream->write('(');
-                    _stream->print(MANUFACTURER);
+                    ex_print_str_to_stream(_stream, MANUFACTURER, true);
                     _stream->println();
                 }
                 else if( _buf[1] == 'B' && _buf[2] == 'V' ) {
@@ -163,7 +163,7 @@ ExecuteCommand Voltronic::executeCommand() {
             
             case 'I':
                 
-                ex_printf_to_stream(_stream, "#%15s %10s %10s\r\n", 
+                ex_printf_to_stream(_stream, "#%15S %10S %10S\r\n", 
                     MANUFACTURER,
                     PART_NUMBER,
                     FIRMWARE_VERSION
@@ -204,10 +204,10 @@ ExecuteCommand Voltronic::executeCommand() {
                 // M - can be 0 (scale) or 1 (offset). PM can be omitted - then sensor params are printed
                 // K - float value to be set (17 symbols). Can be omitted
                 
-                _sensor_ptr = (int) ex_parse_float(_buf, 1,1);
+                _sensor_ptr = (uint8_t) ex_parse_float(_buf, 1,1);
                 switch( _buf[2]) {
                     case 'P':
-                        _sensor_param = (int) ex_parse_float(_buf, 3,1);
+                        _sensor_param = (uint8_t) ex_parse_float(_buf, 3,1);
 
                         if( _buf[4] == 'V' ) {
                             _sensor_param_value = ex_parse_float(_buf, 5,17);
