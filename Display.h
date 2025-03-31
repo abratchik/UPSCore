@@ -37,8 +37,8 @@ class AbstractDisplay {
         void set_brightness(int brightness) { _brightness = brightness; setup_display(); }
 
         virtual void toggle_display_mode(){;};
-        virtual void set_display_mode(int mode){;};
-        virtual int get_display_mode(){ return 0;};
+        virtual void set_display_mode(uint8_t mode){;};
+        virtual uint8_t get_display_mode(){ return 0;};
 
         void init_refresh(){ _refresh = true;};
         void refresh() {

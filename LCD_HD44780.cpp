@@ -39,7 +39,7 @@ void Display::on_refresh() {
 
 #if DISPLAY_SCREEN_HEIGHT > 2 
     setCursor(3,0); print_number(_vac_in->reading(), 4,1);
-    setCursor(10,0); print_number(round(_vac_in->get_period()>0? (float)TIMER_ONE_SEC/_vac_in->get_period() : 0) , 3,0);
+    setCursor(10,0); print_number(_vac_in->get_frequency() , 3,0);
     setCursor(16,0);
     if(!bitRead(status, UTILITY_FAIL)) 
         printstr(DISPLAY_STATUS_OK);
@@ -47,7 +47,7 @@ void Display::on_refresh() {
         printstr(DISPLAY_STATUS_NOK);
         
     setCursor(3,1); print_number(_vac_out->reading(), 4,1); 
-    setCursor(10,1); print_number(round(_vac_out->get_period()>0? (float)TIMER_ONE_SEC/_vac_out->get_period() : 0), 3,0);
+    setCursor(10,1); print_number(_vac_out->get_frequency(), 3,0);
     setCursor(16,1);
     if(!bitRead(status, UPS_FAULT)) 
         printstr(DISPLAY_STATUS_OK);

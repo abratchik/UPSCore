@@ -25,7 +25,7 @@
 #define TIMER_ONE_SEC   960           // number of ticks to form 1 second
 #define MAX_NUM_TIMERS  5             // number of timers used
 
-#define INTERACTIVE_DEFAULT_INPUT_VOLTAGE 220.0F    // nominal input VAC 
+#define INTERACTIVE_DEFAULT_INPUT_VOLTAGE 230.0F    // nominal input VAC 
 #define INTERACTIVE_INPUT_VOLTAGE_DEVIATION 0.08F   // max input VAC deviation
 #define INTERACTIVE_INPUT_VOLTAGE_HYSTERESIS 0.02F  // input VAC hysteresis
 #define INTERACTIVE_MAX_AC_OUT 4.0F                 // max output current, Amp
@@ -45,9 +45,9 @@
 #define DISPLAY_CLK_OUT  13
 
 // uncomment only one line for enabling display of the supported type
-// #define DISPLAY_TYPE_NONE                        // no display 
-// #define DISPLAY_TYPE_LED_TM1640                  // LED assembly display based on TM1640
-#define DISPLAY_TYPE_LCD_HD44780                 // 16x2 or 20x4 LCD matrix display based on HD44780
+// #define DISPLAY_TYPE_NONE          // no display 
+#define DISPLAY_TYPE_LED_TM1640    // LED assembly display based on TM1640
+// #define DISPLAY_TYPE_LCD_HD44780    // 16x2 or 20x4 LCD matrix display based on HD44780
 
 // allows to configure display I2C address and resolution for HD44780
 #ifdef DISPLAY_TYPE_LCD_HD44780
@@ -56,15 +56,16 @@
 #define DISPLAY_SCREEN_HEIGHT   4
 #endif
 
-#define DISPLAY_MAX_BRIGHTNESS 4                    // maximum brightness level of the display backlit
-#define DISPLAY_DEFAULT_BRIGHTNESS 1                // default brightness level of the display backlit
+#define DISPLAY_MAX_BRIGHTNESS 4        // maximum brightness level of the display backlit
+#define DISPLAY_DEFAULT_BRIGHTNESS 1    // default brightness level of the display backlit
 
 #define SERIAL_MONITOR_BAUD_RATE 9600
 
-// the following constants are arbitrary and can be updated as necessary for a particular UPS implementation
+// the following constants are arbitrary and can be updated as necessary for a particular 
+// UPS implementation
 const PROGMEM char MANUFACTURER[] = "SmartEyeAI";
-const PROGMEM char PART_NUMBER[] = "ESRMUNL2000";
-const PROGMEM char PART_MODEL[] = "SmartEyeAI ServerRM UNL-2000.ATM328P.USB.2U";
+const PROGMEM char PART_NUMBER[] = "SPSLUPS2000";
+const PROGMEM char PART_MODEL[] = "SmartEyeAI LineUPS-2000.PureSine.ATM328P.USB.2U";
 #define RATED_VA 2000
 #define ACTUAL_VA 1200
 const PROGMEM char FIRMWARE_VERSION[] = "001.00";

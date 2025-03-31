@@ -61,10 +61,10 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     float nominal_hysteresis = _hysteresis * _nominal_vac_input;       
 
     // wrong output voltage protection after inverter
-    if(_batteryMode ) {
-        if( _vac_out->reading() - _nominal_vac_input  > nominal_deviation )   
-            writeStatus(UPS_FAULT, true);
-    }
+    // if(_batteryMode ) {
+    //     if( _vac_out->reading() - _nominal_vac_input  > nominal_deviation )   
+    //         writeStatus(UPS_FAULT, true);
+    // }
 
     // if the state is overload or output voltage is wrong, no regulation, need cold reset.
     if(readStatus( OVERLOAD ) || readStatus( UPS_FAULT ) || readStatus( BATTERY_DEAD ) ) 

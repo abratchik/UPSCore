@@ -98,8 +98,8 @@ const PROGMEM uint8_t DISPLAY_NUMBER_FONT[] = {
         void initialize();
 
         void toggle_display_mode() { _display_mode = (++_display_mode) % DISPLAY_NUMMODES ;};
-        void set_display_mode(int mode) { _display_mode = mode; };
-        int get_display_mode() { return _display_mode; };
+        void set_display_mode(uint8_t mode) { _display_mode = mode; };
+        uint8_t get_display_mode() { return _display_mode; };
      
     
     protected:
@@ -139,7 +139,7 @@ const PROGMEM uint8_t DISPLAY_NUMBER_FONT[] = {
         uint8_t blink[8];    // array to store blink mask for each group
 
         bool _blink_state;
-        int _display_mode;
+        uint8_t _display_mode;
 
         void setFlag(DisplayFlag flag);
 

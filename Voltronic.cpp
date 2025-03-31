@@ -1,7 +1,7 @@
 #include "Voltronic.h"
 
 
-Voltronic::Voltronic( HardwareSerial* stream) {
+Voltronic::Voltronic( Stream* stream) {
     _stream = stream;
 
     _param[PARAM_SELFTEST_MIN] = MIN_SELFTEST_DURATION;
@@ -15,10 +15,6 @@ Voltronic::Voltronic( HardwareSerial* stream) {
     _param[PARAM_DISPLAY_BRIGHTNESS_LEVEL] = DISPLAY_DEFAULT_BRIGHTNESS;
 #endif
 
-}
-
-void Voltronic::begin(int baud_rate ) {
-    _stream->begin(baud_rate);
 }
 
 char Voltronic::process() {
@@ -77,7 +73,12 @@ ExecuteCommand Voltronic::executeCommand() {
                     _stream->println();
                 }
                 else if( _buf[1] == 'R' && _buf[2] == 'I' ) {
-                    printRatedInfo();
+                    ex_printf_to_stream(_stream, "#%4.1f %3i %3.1f %3.1f\r\n", 
+                        _param[PARAM_OUTPUT_VAC_NOMINAL],
+                        (int)_param[PARAM_OUTPUT_AC_NOMINAL],
+                        _param[PARAM_BATTERY_VDC_NOMINAL],
+                        _param[PARAM_OUTPUT_FREQ_NOMINAL]
+                    );
                 }
                 else if( _buf[1] == 'M' && _buf[2] == 'D' ) {
 
@@ -113,11 +114,6 @@ ExecuteCommand Voltronic::executeCommand() {
                     command_status = COMMAND_BEEPER_MUTE;
                 }
                 break;
-
-            // Query UPS for rated information #4 (old)
-            // case 'F':
-            //    printRatedInfo();
-            //    break;
  
 #ifndef DISPLAY_TYPE_NONE            
             case 'D':
@@ -250,19 +246,4 @@ ExecuteCommand Voltronic::executeCommand() {
     return command_status;
 }
 
-void Voltronic::printRatedInfo() {
-
-    ex_printf_to_stream(_stream, "#%4.1f %3i %3.1f %3.1f\r\n", 
-        _param[PARAM_OUTPUT_VAC_NOMINAL],
-        (int)_param[PARAM_OUTPUT_AC_NOMINAL],
-        _param[PARAM_BATTERY_VDC_NOMINAL],
-        _param[PARAM_OUTPUT_FREQ_NOMINAL]
-    );
-
-}
-
-void Voltronic::printSensorParams( float offset, float scale,  float value, int reading, int median, long reading_sum) {  
-    float total =  reading_sum;
-    ex_printf_to_stream(_stream, "(%i %.5f %.5f %f %i %i %f\r\n", _sensor_ptr, offset, scale, value, reading, median, total);
-}
 

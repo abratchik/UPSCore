@@ -7,14 +7,11 @@
 #define DEFAULT_SCALE           1.00
 #define DEFAULT_OFFSET          0.00
 
-#define SIGN(X) ((X) > 0) - ((X) < 0)
-#define DEFAULT_SAMPLING_PHASE 0
-
 const uint8_t DEFAULT_NUM_SAMPLES = 20;
 const uint8_t DEFAULT_SAMPLING_PERIOD = 1;
+const uint8_t DEFAULT_SAMPLING_PHASE = 0;
 const uint8_t DEFAULT_NUM_FRAMES = 3;
-const int DEFAULT_MEDIAN_READING = 520;
-
+const int DEFAULT_MEDIAN_READING = 512;
 
 enum SensorParam {
     SENSOR_PARAM_SCALE,
@@ -72,7 +69,7 @@ class Sensor {
 
         int* get_readings() { return _readings; };
 
-        void setParam(float value, SensorParam p) { _param[p] = value;};
+        virtual void setParam(float value, SensorParam p) { _param[p] = value;};
         float getParam(SensorParam p) { return _param[p]; };
 
         void suspend() { _active = false; };
@@ -80,7 +77,7 @@ class Sensor {
     
     protected:
         
-        float transpose_reading(float value) { return value * _param[SENSOR_PARAM_SCALE]   + _param[SENSOR_PARAM_OFFSET]; };
+        virtual float transpose_reading(float value) { return value * _param[SENSOR_PARAM_SCALE]   + _param[SENSOR_PARAM_OFFSET]; };
         
         // ADC input pin number
         int _pin;
@@ -142,7 +139,8 @@ class RMSSensor : public Sensor {
         void compute_reading() override;
 
         void on_init() override {
-            _median = DEFAULT_MEDIAN_READING;
+            _median = DEFAULT_MEDIAN_READING + _param[SENSOR_PARAM_OFFSET];
+            _running_period_sum = 0;
             _period = 0;
             _avg_period = 0.0F;
             _period_counter = 0;
@@ -158,7 +156,20 @@ class RMSSensor : public Sensor {
         // returns avg number of ticks corresponding to the period of the signal
         float get_period() { return _avg_period; };
 
+        // returns the frequency of the signal in Hz
+        float get_frequency() { return _avg_period > 0.0? round( (float) TIMER_ONE_SEC / _avg_period ) : 0 ; };
+
         int get_median() override { return _median; };
+
+    protected:
+        float transpose_reading(float value) override { return value * _param[SENSOR_PARAM_SCALE]; };
+
+        void setParam(float value, SensorParam p) override { 
+            if(p == SENSOR_PARAM_OFFSET) {
+                _median = DEFAULT_MEDIAN_READING + value;
+            }
+            Sensor::setParam(value, p); 
+        };
 
     private:
 

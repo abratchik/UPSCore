@@ -18,8 +18,8 @@ void Display::on_refresh() {
 
     switch(_display_mode) {
         case DISPLAY_FREQ:
-            setInputReading( (_vac_in->get_period() > 0? round(TIMER_ONE_SEC / _vac_in->get_period()) : 0), UNIT_HZ );
-            setOutputReading( (_vac_out->get_period() > 0? round(TIMER_ONE_SEC / _vac_out->get_period()) : 0), UNIT_HZ);
+            setInputReading( _vac_in->get_frequency(), UNIT_HZ );
+            setOutputReading( _vac_out->get_frequency(), UNIT_HZ);
             break;
 
         default:

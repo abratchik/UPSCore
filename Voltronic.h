@@ -3,12 +3,11 @@
 
 #define VOLTRONIC_RELEASE 2.0
 #define VOLTRONIC_DEFAULT_PROTOCOL  'V'
-#define VOLTRONIC_DEFAULT_BAUD_RATE 2400
 
 #define COMMAND_BUFFER_SIZE 32
 #define DEFAULT_INTERNAL_TEMP 25.0
 
-#include <HardwareSerial.h>
+#include <Stream.h>
 #include <Arduino.h>
 
 #include "config.h"
@@ -76,9 +75,7 @@ enum VoltronicParam {
 class Voltronic {
 
     public:
-        Voltronic(HardwareSerial* stream );
-        
-        void begin( int baud_rate = VOLTRONIC_DEFAULT_BAUD_RATE );
+        Voltronic(Stream* stream );
 
         // process input/output over the Serial interface
         char process();
@@ -95,14 +92,12 @@ class Voltronic {
         float getSensorParamValue() { return _sensor_param_value; };
         int getSensorParam() { return _sensor_param; };
 
-        void printSensorParams(float offset, float scale, float value = 0, int reading = 0, int median=0, long reading_sum = 0L);
-
     private:
 
         char _buf[COMMAND_BUFFER_SIZE];
         uint8_t _buf_ptr = 0;
         
-        HardwareSerial* _stream;
+        Stream* _stream;
 
         float _param[PARAM_NUMPARAM];
 
@@ -113,7 +108,6 @@ class Voltronic {
         float _sensor_param_value = 0;
         uint8_t _sensor_param = 0;
 
-        void printRatedInfo();
 
 };
 

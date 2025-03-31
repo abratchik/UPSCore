@@ -5,7 +5,7 @@
 
 #include <Arduino.h>
 
-#include <HardwareSerial.h>
+#include <Print.h>
 
 typedef void (*callback)(void);
 
@@ -16,7 +16,7 @@ typedef void (*callback)(void);
 class SimpleTimer {
     public:
         SimpleTimer(unsigned long period = 0, unsigned long duration = 0, bool enabled = false, 
-                    callback on_start = nullptr, callback on_finish = nullptr, HardwareSerial *dbg = nullptr ){
+                    callback on_start = nullptr, callback on_finish = nullptr, Print *dbg = nullptr ){
             _dbg = dbg;
             
             _period = period;
@@ -77,7 +77,7 @@ class SimpleTimer {
         callback _on_start;
         callback _on_finish;
 
-        HardwareSerial * _dbg;
+        Print * _dbg;
 };
 
 /**
@@ -86,7 +86,7 @@ class SimpleTimer {
  */
 class SimpleTimerManager {
     public:
-        SimpleTimerManager(HardwareSerial * dbg = nullptr){
+        SimpleTimerManager(Print * dbg = nullptr){
             _dbg = dbg;
         };
 
@@ -106,7 +106,7 @@ class SimpleTimerManager {
 
     private:
 
-        HardwareSerial * _dbg;
+        Print * _dbg;
 
         SimpleTimer* _simple_timers[MAX_NUM_TIMERS];
         uint8_t _num_timers = 0;

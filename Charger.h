@@ -1,6 +1,8 @@
 #ifndef Charger_h
 #define Charger_h
 
+#include <Print.h>
+
 #include "Settings.h"
 #include "Sensor.h"
 
@@ -44,7 +46,7 @@ enum ChargerPIDParam {
 class Charger {
     public:
 
-        Charger(Settings * settings, Sensor* current_sensor, Sensor* voltage_sensor, HardwareSerial* dbg = nullptr);   
+        Charger(Settings * settings, Sensor* current_sensor, Sensor* voltage_sensor, Print* dbg = nullptr);   
 
         void set_current_sensor(Sensor* current_sensor) {_current_sensor = current_sensor;};
         void set_voltage_sensor(Sensor* voltage_sensor) {_voltage_sensor = voltage_sensor;};
@@ -90,7 +92,7 @@ class Charger {
         void saveParams();
 
     private:
-        HardwareSerial* _dbg;
+        Print* _dbg;
 
         Settings * _settings;
 

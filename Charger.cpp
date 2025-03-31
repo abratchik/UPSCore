@@ -1,7 +1,7 @@
 #include "Charger.h"
 
 
-Charger::Charger(Settings* settings, Sensor* current_sensor, Sensor* voltage_sensor, HardwareSerial* dbg) {
+Charger::Charger(Settings* settings, Sensor* current_sensor, Sensor* voltage_sensor, Print* dbg) {
 
     set_current_sensor(current_sensor);
     set_voltage_sensor(voltage_sensor);
@@ -119,24 +119,6 @@ void Charger::regulate(unsigned long ticks) {
             return;
             break;
     }
-
-    // if( _charging_mode == CHARGING_BY_CC ) {
-    //     deviation = (_charging_current - reading_c)/_charging_current;
-    // }
-    // else if( _charging_mode == CHARGING_BY_CV ) {
-        
-    //     // check if the charging is complete
-    //     if( reading_c <= _cutoff_current ) {
-    //         _charging_mode = CHARGING_COMPLETE;   
-    //         _charging_voltage =       
-    //     }
-
-    //     deviation = ( _charging_voltage - reading_v )/_charging_voltage;
-
-    // }
-    // else if(_charging_mode == CHARGING_COMPLETE ) {
-    //     deviation = ( _charging_voltage - reading_v )/_charging_voltage;
-    // }
 
     long elapsed_ticks = 1; // @todo: switch to actual time?
 

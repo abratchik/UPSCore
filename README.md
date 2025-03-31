@@ -120,19 +120,14 @@ The comprehensive list of sensors is represented in the table below. Each sensor
 Two types of sensors are supported - Running Average (for non-periodic signal) and true RMS for AC voltage.  
 
 ### AC voltage sensors
-AC voltage sensors can be implemented on ZMPT101b signal transformer. The schema of the sensor is below. 
+AC voltage sensors can be implemented based on ZMPT101b signal transformer. The schema of the sensor is below. 
 
 <center class="half">
     <div style="background-color:#ffffff;">
-    <img src="docs/zmpt101b.jpg" title="Line Interactive UPS with the Back-Boost Transformer"/>
+    <img src="docs/zmpt101b.png" title="Line Interactive UPS with the Back-Boost Transformer"/>
 </center>
 
-There are assembled modules available on the market so they can be used for the testing and prototyping purposes:
-
-<center class="half">
-    <div style="background-color:#ffffff;">
-    <img src="docs/zmpt101b-module.png" title="Line Interactive UPS with the Back-Boost Transformer"/>
-</center>
+The R1 is limiting the input current as required by the transformer module. The signal voltage is formed on R2. R5/C1 is forming the low-pass filter with approx 1kHz of the cutoff frequency. It is needed to filter out all the high-frequency noise.     
 
 ### DC Current sensor
 Measurement of the DC current through the battery can be done with help if the standard ACS712 module based on Hall effect. There are 5A, 20A and 30A modules available on the market. The schema of these modules is below:

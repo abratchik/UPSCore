@@ -22,9 +22,9 @@ SimpleTimerManager timer_manager;
 //init sensors
 
 // AC input voltage - 300V max
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, 0.0F, 2.05F, 20, 2 ); 
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, -50.0F, 2.58F, 20, 2 ); 
 // AC output voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.05F, 20, 2, 1 );   
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.32F, 20, 2, 1 );   
 // AC output current 
 Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20, 5, 2 );  
 // Battery voltage
@@ -68,7 +68,7 @@ void setup() {
   wdt_disable();
   pinMode(RESET_PIN, INPUT_PULLUP);
 
-  serial_protocol.begin(SERIAL_MONITOR_BAUD_RATE);
+  Serial.begin(SERIAL_MONITOR_BAUD_RATE);
   
   Serial.write(VOLTRONIC_PROMPT);
   ex_print_str_to_stream( &Serial, PART_MODEL, true);
@@ -217,7 +217,7 @@ void loop() {
           self_test->stop();
           charger.stop();
 
-          // beep_on();
+          beep_on();
         }
 
         break;
@@ -250,9 +250,16 @@ void loop() {
       serial_protocol.setParam(PARAM_OUTPUT_VAC, vac_out.reading());
       serial_protocol.setParam(PARAM_OUTPUT_LOAD_LEVEL, ac_out.reading() / INTERACTIVE_MAX_AC_OUT );
       serial_protocol.setParam(PARAM_BATTERY_LEVEL, lineups.getBatteryLevel() );
-      serial_protocol.setParam(PARAM_OUTPUT_FREQ, (vac_out.get_period() > 0? TIMER_ONE_SEC / vac_out.get_period() : 0) );
+      serial_protocol.setParam(PARAM_OUTPUT_FREQ, vac_out.get_frequency() );
 
-      //TODO: add estimation of remaining time here
+      // Estimate remaining battery time in minutes
+      // if (c_bat.reading() < 0) { // Ensure discharge current is negative
+      //   float remaining_capacity = v_bat.reading() * INTERACTIVE_BATTERY_AH; // Approximate remaining capacity in Ah
+      //   float discharge_rate = -c_bat.reading(); // Convert to positive value
+      //   serial_protocol.setParam(PARAM_REMAINING_MIN, (remaining_capacity / discharge_rate) * 60.0F); // Time in minutes
+      // } else {
+      //   serial_protocol.setParam(PARAM_REMAINING_MIN, -1); // Indicate invalid or charging state
+      // }
 
       
       serial_protocol.setParam(PARAM_REMAINING_MIN,0);
@@ -318,7 +325,9 @@ void loop() {
         case COMMAND_READ_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() ) {
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-            serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
+            ex_printf_to_stream(&Serial, "(%i %.5f %.5f %f %i %i %f\r\n",
+                                              serial_protocol.getSensorPtr(),
+                                              sensor->getParam(SENSOR_PARAM_OFFSET), 
                                               sensor->getParam(SENSOR_PARAM_SCALE),
                                               sensor->reading(), 
                                               sensor->get_last_reading(), 
@@ -360,9 +369,12 @@ void loop() {
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
             sensor->setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
             sensor->compute_reading();
-            serial_protocol.printSensorParams(sensor->getParam(SENSOR_PARAM_OFFSET), 
-                                              sensor->getParam(SENSOR_PARAM_SCALE),
-                                              sensor->reading());
+            ex_printf_to_stream(&Serial, "(%i %.5f %.5f %f\r\n",
+                                        serial_protocol.getSensorPtr(),
+                                        sensor->getParam(SENSOR_PARAM_OFFSET), 
+                                        sensor->getParam(SENSOR_PARAM_SCALE),
+                                        sensor->reading());
+
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.get_num_sensors()) {
             charger.setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
