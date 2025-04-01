@@ -8,7 +8,7 @@
 #include "Charger.h"
 
 // number of ticks for inverter to set the output voltage within limits
-// const int INVERTER_GRACE_PERIOD = 100;
+const int INVERTER_GRACE_PERIOD = 100;
 
 enum InteractiveStatusFlags {
     BEEPER_IS_ACTIVE,           // Beeper activated
@@ -103,6 +103,7 @@ class Interactive {
         bool _selfTestMode = false;
 
         unsigned long _last_fail_time = 0;
+        unsigned long _last_time = 0;
 
         float _battery_level; 
 

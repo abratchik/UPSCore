@@ -46,7 +46,7 @@
 
 // uncomment only one line for enabling display of the supported type
 // #define DISPLAY_TYPE_NONE          // no display 
-#define DISPLAY_TYPE_LED_TM1640    // LED assembly display based on TM1640
+// #define DISPLAY_TYPE_LED_TM1640    // LED assembly display based on TM1640
 // #define DISPLAY_TYPE_LCD_HD44780    // 16x2 or 20x4 LCD matrix display based on HD44780
 
 // allows to configure display I2C address and resolution for HD44780

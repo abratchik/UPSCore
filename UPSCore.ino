@@ -253,16 +253,17 @@ void loop() {
       serial_protocol.setParam(PARAM_OUTPUT_FREQ, vac_out.get_frequency() );
 
       // Estimate remaining battery time in minutes
-      // if (c_bat.reading() < 0) { // Ensure discharge current is negative
-      //   float remaining_capacity = v_bat.reading() * INTERACTIVE_BATTERY_AH; // Approximate remaining capacity in Ah
-      //   float discharge_rate = -c_bat.reading(); // Convert to positive value
-      //   serial_protocol.setParam(PARAM_REMAINING_MIN, (remaining_capacity / discharge_rate) * 60.0F); // Time in minutes
-      // } else {
-      //   serial_protocol.setParam(PARAM_REMAINING_MIN, -1); // Indicate invalid or charging state
-      // }
-
+      if (c_bat.reading() <= 0) { // Discharge mode 
+        float remaining_capacity = lineups.getBatteryLevel() * INTERACTIVE_TOTAL_BATTERY_CAP; // Approximate remaining capacity in Ah
+        float discharge_rate = -c_bat.reading(); // Convert to positive value
+        // Time in minutes
+        serial_protocol.setParam( PARAM_REMAINING_MIN, min(discharge_rate > 0? (remaining_capacity / discharge_rate) * 60.0F : 0 , 999.0) ); 
+      } else {
+        // Charging mode
+        serial_protocol.setParam(PARAM_REMAINING_MIN, -1); 
+      }
       
-      serial_protocol.setParam(PARAM_REMAINING_MIN,0);
+      // serial_protocol.setParam(PARAM_REMAINING_MIN,0);
 
       serial_protocol.setParam(PARAM_BATTERY_VDC, v_bat.reading());
       serial_protocol.setParam(PARAM_INTERNAL_TEMP, 25.0); //TODO: replace with sensor reading
