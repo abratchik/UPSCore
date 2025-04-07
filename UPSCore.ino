@@ -60,9 +60,13 @@ SimpleTimer* display_refresh_timer = nullptr;
 
 Voltronic serial_protocol( &Serial );
 
-void output_power_on();
-void output_power_off();
-SimpleTimer* output_power_timer =  nullptr;
+
+void wakeup_ups(); // put the lineups in normal mode
+void shutdown_ups(); // put the lineups in shutdown mode
+
+uint32_t resume_timeout  = 0;
+
+SimpleTimer* shutdown_timer =  nullptr;
 
 void setup() {
   wdt_disable();
@@ -92,7 +96,7 @@ void setup() {
   display_refresh_timer = timer_manager.create(DISPLAY_BLINK_FREQ, 0, false, refresh_display);
 #endif
   self_test = timer_manager.create(0, MIN_SELFTEST_DURATION * 60 * TIMER_ONE_SEC, false, start_self_test, stop_self_test);
-  output_power_timer = timer_manager.create();
+  shutdown_timer = timer_manager.create();
 
   cli(); // stop interrupts
 
@@ -117,14 +121,17 @@ void setup() {
 
   pinMode(BUZZ_PIN, OUTPUT);
 
+#ifndef DISPLAY_TYPE_NONE 
+  display.initialize();
   beep_on();
   delay(1000);
   beep_off();
-  
-  #ifndef DISPLAY_TYPE_NONE 
-  display.initialize();
   display_refresh_timer->start();
-  #endif
+#else
+  beep_on();
+  delay(1000);
+  beep_off();
+#endif
 
   Serial.println(VOLTRONIC_PROMPT);
 
@@ -221,19 +228,75 @@ void loop() {
         }
 
         break;
-      
+
+      case REGULATE_STATUS_WAKEUP:
+        serial_protocol.setParam( PARAM_RESTORE_MIN , 0.0F) ;
+        resume_timeout = 0;
+
+        lineups.writeStatus(SHUTDOWN_ACTIVE, false);
+
+#ifndef DISPLAY_TYPE_NONE
+        display.toggle(DISPLAY_ON);
+#endif        
+        break;
+
       case REGULATE_STATUS_SHUTDOWN:
-        if(lineups.readStatus(OUTPUT_CONNECTED)) {
-          lineups.toggleOutput(false);
+        if(!lineups.readStatus(SHUTDOWN_ACTIVE)) {
+          lineups.writeStatus(SHUTDOWN_ACTIVE, true);
+#ifndef DISPLAY_TYPE_NONE
+          display.toggle(DISPLAY_OFF);
+#endif          
           delayed_charge->stop();
           beeper_timer->stop();
           self_test->stop();
           charger.stop();
 
-          if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 && !output_power_timer->isEnabled() ) {
-            output_power_timer->setOnFinish( output_power_on );
-            output_power_timer->start( 0, serial_protocol.getParam(PARAM_RESTORE_MIN) * 60 * TIMER_ONE_SEC );
+          // switch off all the relays 
+          lineups.toggleOutput(false);
+          lineups.toggleInverter(false);
+          lineups.toggleInput(false);
+          lineups.adjustOutput(REGULATE_NONE);
+          lineups.toggleError(false);
+          vac_in.init();
+
+
+          if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 ) {
+            // shutdown_timer->setOnFinish( wakeup_ups );
+            // shutdown_timer->start( 0, serial_protocol.getParam(PARAM_RESTORE_MIN) * 60 * TIMER_ONE_SEC );
+            // TODO: implement wakeup timer
+            resume_timeout = (uint32_t)( serial_protocol.getParam(PARAM_RESTORE_MIN) * 60 );
+            // Serial.println(resume_timeout);
           }
+        }
+
+        // Put the system in deep sleep for a fixed time period. Once the delay is over, the system will resume the loop
+        // cycle as normal, re-take all the sensor readings and fall back here if the shutdown is still active
+
+        lineups.sleep();
+
+        // unsigned long ticks = timer_manager.getTicks();
+        // while(timer_manager.getTicks() - ticks < TIMER_ONE_SEC ) {
+        //   wdt_reset();
+        // }
+        
+        if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 ) {
+          resume_timeout--;
+
+          if( resume_timeout == 0 ) {
+            wakeup_ups();
+            return;
+          }
+          
+        }
+        else {
+          if( !bitRead(lineups.getStatus(), UTILITY_FAIL) ) {
+            wakeup_ups();
+            return;
+          }
+          else {
+            vac_in.init();
+          }
+
         }
 
         break;
@@ -284,28 +347,26 @@ void loop() {
           self_test->stop();
           break;
         case COMMAND_SHUTDOWN:
+          // shutdown command received, we need to set the Interactive in shutdown mode either immediately or after the delay,
+          // depending on the shutdown time parameter
           if( serial_protocol.getParam(PARAM_SHUTDOWN_MIN) == 0.0F ) {
-            output_power_off();
+            shutdown_ups();
           }
-          else if(! output_power_timer->isEnabled() && !output_power_timer->isEnabled() ) {
-            output_power_timer->setOnFinish( output_power_off );
-            output_power_timer->start( 0, (int) ( serial_protocol.getParam(PARAM_SHUTDOWN_MIN) * 60 * TIMER_ONE_SEC ) );
+          else if(! shutdown_timer->isEnabled() ) {
+            shutdown_timer->setOnFinish( shutdown_ups );
+            shutdown_timer->start( 0, (int) ( serial_protocol.getParam(PARAM_SHUTDOWN_MIN) * 60 * TIMER_ONE_SEC ) );
           }
           break;
         case COMMAND_SHUTDOWN_CANCEL:
-          if(output_power_timer->isEnabled()) {
-            if(lineups.readStatus(SHUTDOWN_ACTIVE)) {  
-              output_power_timer->setOnFinish( output_power_on );
-              output_power_timer->start( 0, 10 * TIMER_ONE_SEC );
-            }
-            else {
-              output_power_timer->setOnFinish(nullptr);
-              output_power_timer->stop();
-            }
-
+          // shutdown cancel command received, we need to stop the shutdown timer
+          // and wake up the Interactive if it was in shutdown mode
+          if(shutdown_timer->isEnabled()) {
+            shutdown_timer->setOnFinish(nullptr);
+            shutdown_timer->stop();
           }
-          else if(lineups.readStatus(SHUTDOWN_ACTIVE)) {
-            output_power_on();
+          
+          if(lineups.readStatus(SHUTDOWN_ACTIVE)) {
+            wakeup_ups();
           }
 
           break;
@@ -446,11 +507,11 @@ void stop_self_test() {
   lineups.setSelfTestMode(false);
 }
 
-void output_power_off() {
+void shutdown_ups() {
   lineups.setShutdownMode(true);
 }
 
-void output_power_on() {
+void wakeup_ups() {
   lineups.setShutdownMode(false);
 }
 

@@ -21,6 +21,7 @@
 #define INTERACTIVE_LEFT_RLY_OUT 7    // RY2 relay manage pin
 #define INTERACTIVE_RIGHT_RLY_OUT 8   // RY3 relay manage pin
 #define INTERACTIVE_INVERTER_OUT 9    // inverter manage pin
+#define INTERACTIVE_ERROR_OUT LED_BUILTIN
 
 #define TIMER_ONE_SEC   960           // number of ticks to form 1 second
 #define MAX_NUM_TIMERS  5             // number of timers used

@@ -9,7 +9,7 @@
 #if DISPLAY_SCREEN_HEIGHT > 2
 const PROGMEM char DISPLAY_ROW_0[] = "I:   0.0V,  0Hz";
 const PROGMEM char DISPLAY_ROW_1[] = "O:   0.0V,  0Hz";
-const PROGMEM char DISPLAY_ROW_2[] = "B:   0.0V,  0.00A";
+const PROGMEM char DISPLAY_ROW_2[] = "B:   0.00V,  0.00A";
 const PROGMEM char DISPLAY_ROW_3[] = "C:  0\% L:  0\%";
 
 const PROGMEM char* const DISPLAY_ROWS[] = {

@@ -13,6 +13,7 @@ Interactive::Interactive( RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out,
     pinMode(INTERACTIVE_LEFT_RLY_OUT, OUTPUT);
     pinMode(INTERACTIVE_RIGHT_RLY_OUT, OUTPUT);
     pinMode(INTERACTIVE_INVERTER_OUT, OUTPUT);
+    pinMode(INTERACTIVE_ERROR_OUT, OUTPUT);
 
     // type of the UPS
     writeStatus( LINE_INTERACTIVE, true );
@@ -24,24 +25,20 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     
     _battery_level = max(min((_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA, 1.0F), 0.0F) ;
     writeStatus(SELF_TEST, _selfTestMode);
-    writeStatus(SHUTDOWN_ACTIVE, _shutdownMode);
     writeStatus(BATTERY_DEAD, _v_bat->reading() < INTERACTIVE_MIN_V_BAT );
 
     bool self_test = readStatus(SELF_TEST);
 
     bool battery_low = (_battery_level < INTERACTIVE_BATTERY_LOW);
 
+    // stop self-test if the battery is low
     if( battery_low ) {
         self_test = false;
         writeStatus(SELF_TEST, false);
     }
 
     writeStatus(BATTERY_LOW, battery_low);
-
-    if( readStatus( SHUTDOWN_ACTIVE ) ) {
-        return REGULATE_STATUS_SHUTDOWN;
-    }
-
+ 
     float ac_out = _ac_out->reading();
 
     // If output is disconnected but the load is present then it may 
@@ -70,10 +67,6 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     }
 
     _last_time = ticks;
-
-    // if the state is overload or output voltage is wrong, no regulation, need cold reset.
-    if(readStatus( OVERLOAD ) || readStatus( UPS_FAULT ) || readStatus( BATTERY_DEAD ) ) 
-        return REGULATE_STATUS_ERROR;
     
     // input voltage is far off the regulation limits (X2)
     bool utility_fail = abs_deviation > 2 * (nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : - 1 ));
@@ -89,13 +82,31 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
         writeStatus(UTILITY_FAIL, true);
     }
 
+    if(_shutdownMode) {
+        writeStatus(UTILITY_FAIL, utility_fail);
+        return REGULATE_STATUS_SHUTDOWN;
+    }
+    else {
+        if( readStatus( SHUTDOWN_ACTIVE ) ) {
+            return REGULATE_STATUS_WAKEUP;
+        }
+    }
+
+    // if the state is overload or output voltage is wrong, no regulation, need cold reset.
+    if(readStatus( OVERLOAD ) || readStatus( UPS_FAULT ) ) {
+        return raise_error();
+    }
+
     if( utility_fail || self_test || (ticks - _last_fail_time < TIMER_ONE_SEC * 2) )  {
 
         toggleInput(false);
 
         adjustOutput(REGULATE_NONE);
 
-        return REGULATE_STATUS_FAIL;
+        if(readStatus(BATTERY_DEAD)) 
+            return raise_error();
+        else
+            return REGULATE_STATUS_FAIL;
 
     }
         
@@ -140,6 +151,10 @@ void Interactive::toggleInput(bool mode) {
     writeStatus(INPUT_CONNECTED, mode);
 }
 
+void Interactive::toggleError(bool mode) {
+    digitalWrite(INTERACTIVE_ERROR_OUT, mode);
+}
+
 void Interactive::adjustOutput(RegulateMode mode) {
     switch(mode) {
         case REGULATE_UP:
@@ -167,4 +182,39 @@ void Interactive::writeStatus(uint16_t nbit, bool value) {
         bitSet(_status, nbit);
     else
         bitClear(_status, nbit);
+}
+
+void Interactive::sleep(uint32_t timeout) {
+
+    wdt_disable();
+
+
+    ADCSRA &= ~ (1 << ADEN);    // Disable ADC
+    ACSR |= (1 << ACD);         // Disable comparator
+
+    while (timeout > 0) {
+
+        wdt_enable(WDTO_250MS);                   // Enable WDT
+        WDTCSR |= (1 << WDIE);                    // Режим ISR+RST
+
+        wdt_reset();                            // Reset WDT  
+        set_sleep_mode(SLEEP_MODE);   
+        sleep_enable(); 				        // Enable sleep mode
+        sleep_cpu(); 				            // Put the CPU to sleep
+        sleep_disable();                        // Disable sleep mode
+        wdt_disable();                          // Disable WDT
+        wdt_reset();                            // Reset WDT
+
+        timeout --;
+    }
+    
+    ADCSRA |= (1 << ADEN);      // Enable ADC
+    ACSR &= ~ (1 << ACD);       // Enable comparator
+    
+    wdt_enable(WDTO_2S);
+
+}
+
+ISR(WDT_vect) {                     
+    for(int i=0; i<1000;i++);
 }

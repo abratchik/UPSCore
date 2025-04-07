@@ -7,6 +7,12 @@
 #include "Charger.h"
 #include "Sensor.h"
 
+enum DisplayToggleMode {
+    DISPLAY_TOGGLE,
+    DISPLAY_ON,
+    DISPLAY_OFF
+};
+
 class AbstractDisplay {
     public:
         AbstractDisplay(Interactive *lineups, Charger *charger, RMSSensor *vac_in, RMSSensor *vac_out, 
@@ -32,7 +38,10 @@ class AbstractDisplay {
 
         void initialize() {;};
 
-        void toggle() { _active = !_active; setup_display(); };
+        void toggle(DisplayToggleMode mode = DISPLAY_TOGGLE ) { 
+            _active = ( !mode ? !_active : mode == DISPLAY_ON ) ; 
+            setup_display(); 
+        };
 
         void set_brightness(int brightness) { _brightness = brightness; setup_display(); }
 
@@ -42,7 +51,7 @@ class AbstractDisplay {
 
         void init_refresh(){ _refresh = true;};
         void refresh() {
-            if(!_refresh) return;
+            if(!_active || !_refresh) return;
             on_refresh();
             _refresh = false;
         };

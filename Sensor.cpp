@@ -154,7 +154,7 @@ void SensorManager::register_sensor(Sensor* sensor) {
 }
 
 void SensorManager::sample() {
-    // if(!_active) return;
+    if(!_active) return;
     for(uint8_t i=0; i < _num_sensors; i++)
         _sensors[i]->sample();
 }

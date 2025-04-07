@@ -69,7 +69,7 @@ class Sensor {
 
         int* get_readings() { return _readings; };
 
-        virtual void setParam(float value, SensorParam p) { _param[p] = value;};
+        virtual void setParam(float value, SensorParam p) { _param[p] = value; compute_reading();};
         float getParam(SensorParam p) { return _param[p]; };
 
         void suspend() { _active = false; };
@@ -102,7 +102,7 @@ class Sensor {
         uint8_t _sample_counter;
         
         // calculated sensor reading
-        float _avg_reading;
+        volatile float _avg_reading;
         
         // accumulated value for readings used for the sensor reading calculation
         long _reading_sum; 
@@ -178,7 +178,7 @@ class RMSSensor : public Sensor {
         int _median;
 
         // average period computed 
-        float _avg_period;
+        volatile float _avg_period;
         
         // latest detected value of the period in ticks
         uint16_t _period;
@@ -214,7 +214,7 @@ class SensorManager {
         
         SensorManager( Settings * settings , HardwareSerial * dbg = nullptr) {
             _dbg = dbg;
-            // _active = true;
+            _active = true;
             _settings = settings;
         };
 
@@ -233,8 +233,8 @@ class SensorManager {
         // load sensor params from EEPROM. If sensor params were not saved before, they are initialized in EEPROM
         void loadParams();
 
-        // void suspend() { _active = false; };
-        // void resume() { _active = true; };
+        void suspend() { _active = false; };
+        void resume() { _active = true; };
 
     private:
         HardwareSerial * _dbg;
@@ -244,7 +244,7 @@ class SensorManager {
         Sensor* _sensors[MAX_NUM_SENSORS];
         uint8_t _num_sensors = 0;
 
-        // bool _active;
+        bool _active;
 
 };
 

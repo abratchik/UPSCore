@@ -2,10 +2,16 @@
 #define Interactive_h
 
 #include "config.h"
+#include "avr/wdt.h"
+#include "avr/sleep.h"
 
 #include "SimpleTimer.h"
 #include "Sensor.h"
 #include "Charger.h"
+
+ // Configure sleep mode
+#define DEFAULT_SLEEP_TIMEOUT 4 
+#define SLEEP_MODE SLEEP_MODE_PWR_DOWN
 
 // number of ticks for inverter to set the output voltage within limits
 const int INVERTER_GRACE_PERIOD = 100;
@@ -37,7 +43,8 @@ enum RegulateStatus {
     REGULATE_STATUS_SUCCESS,
     REGULATE_STATUS_FAIL,
     REGULATE_STATUS_ERROR,
-    REGULATE_STATUS_SHUTDOWN
+    REGULATE_STATUS_SHUTDOWN,
+    REGULATE_STATUS_WAKEUP
 };
 
 
@@ -73,6 +80,8 @@ class Interactive {
 
         void toggleOutput(bool mode);
 
+        void toggleError(bool mode);
+
         // connect or disconnect the mains
         void toggleInput(bool mode);
 
@@ -82,6 +91,10 @@ class Interactive {
         void writeStatus(uint16_t nbit, bool value);
 
         bool readStatus(int nbit) { return bitRead(_status, nbit); };
+        
+        // put the lineups in sleep mode for a given number of 1/4 seconds. Default sleep timeout = 4 so 
+        // calling this function without params will put the system to a sleep exactly for 1 second, given WDT accuracy
+        void sleep(uint32_t timeout = DEFAULT_SLEEP_TIMEOUT);
     
     private:
         RMSSensor *_vac_in, *_vac_out;
@@ -95,10 +108,9 @@ class Interactive {
 
         float _last_fault_input_voltage = 0;
 
-        uint16_t _status = 0;
+        volatile uint16_t _status = 0;
 
         bool _batteryMode = false;
-
         bool _shutdownMode = false;
         bool _selfTestMode = false;
 
@@ -106,6 +118,11 @@ class Interactive {
         unsigned long _last_time = 0;
 
         float _battery_level; 
+
+        RegulateStatus raise_error() {
+            toggleError(true);
+            return REGULATE_STATUS_ERROR;
+        };
 
 };
 

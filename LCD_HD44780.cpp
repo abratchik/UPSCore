@@ -54,8 +54,8 @@ void Display::on_refresh() {
     else 
         printstr(DISPLAY_STATUS_NOK);
 
-    setCursor(3,2); print_number(_v_bat->reading(), 4,1);
-    setCursor(10,2); print_number(_c_bat->reading(), 5,2); 
+    setCursor(3,2); print_number(_v_bat->reading(), 5,2);
+    setCursor(11,2); print_number(_c_bat->reading(), 5,2); 
     setCursor(2,3); print_number(round((float)_lineups->getBatteryLevel() * 100.00) , 3, 0 );
     setCursor(9,3); print_number(round((float) 100.00 * _ac_out->reading() / INTERACTIVE_MAX_AC_OUT) , 3, 0 );
     setCursor(14,3); print_number( status, 2, 0, HEX, true);

@@ -111,7 +111,7 @@ class SimpleTimerManager {
         SimpleTimer* _simple_timers[MAX_NUM_TIMERS];
         uint8_t _num_timers = 0;
 
-        unsigned long _ticks = 0L;
+        volatile unsigned long _ticks = 0L;
 };
 
 #endif
