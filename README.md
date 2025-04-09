@@ -47,6 +47,7 @@ The solution supports most of the Voltronic commands. Some extensions are added 
 <tr><td>QBV</td><td>Query UPS for battery information</td></tr>
 <tr><td>D</td><td>Toggle display on or off</td></tr>
 <tr><td>Dn</td><td>Set the brightness level for the display where <b>n</b> is representing the brightness level and can be from 0 to 4</td></tr>
+<tr><td>DM</td><td>Change the display mode. The effect of this command depends on the type of the display used. For TM1640 it is showing the input and output frequency. Not supported for HD44780 with 20x04 screen</td></tr>
 <tr><td>T</td><td>Invoke a quick battery self-test</td></tr>
 <tr><td>Tn</td><td>Invoke a battery self-test lasting n (.2→.9, 01→99) minutes</td></tr>
 <tr><td>CT</td><td>Cancel the self-test</td></tr>

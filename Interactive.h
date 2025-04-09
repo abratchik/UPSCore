@@ -119,9 +119,9 @@ class Interactive {
 
         float _battery_level; 
 
-        RegulateStatus raise_error() {
-            toggleError(true);
-            return REGULATE_STATUS_ERROR;
+        RegulateStatus update_state(RegulateStatus status = REGULATE_STATUS_ERROR) {
+            toggleError(status == REGULATE_STATUS_ERROR);
+            return status;
         };
 
 };

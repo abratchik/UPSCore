@@ -23,95 +23,81 @@ Interactive::Interactive( RMSSensor *vac_in, RMSSensor *vac_out, Sensor *ac_out,
 
 RegulateStatus Interactive::regulate(unsigned long ticks) {
     
+    // read the sensors
     _battery_level = max(min((_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA, 1.0F), 0.0F) ;
-    writeStatus(SELF_TEST, _selfTestMode);
-    writeStatus(BATTERY_DEAD, _v_bat->reading() < INTERACTIVE_MIN_V_BAT );
-
-    bool self_test = readStatus(SELF_TEST);
-
-    bool battery_low = (_battery_level < INTERACTIVE_BATTERY_LOW);
-
-    // stop self-test if the battery is low
-    if( battery_low ) {
-        self_test = false;
-        writeStatus(SELF_TEST, false);
-    }
-
-    writeStatus(BATTERY_LOW, battery_low);
- 
     float ac_out = _ac_out->reading();
-
-    // If output is disconnected but the load is present then it may 
-    // point at the defective output relay or the load sensor
-
-    writeStatus(UNUSUAL_STATE, !readStatus( OUTPUT_CONNECTED ) && ( ac_out > INTERACTIVE_MIN_AC_OUT ) );
-
-    // overload protection
-    if(ac_out > INTERACTIVE_MAX_AC_OUT)
-        writeStatus(OVERLOAD, true); 
-
     float vac_input = _vac_in->reading();
 
     float abs_deviation =  abs(_nominal_vac_input - vac_input);
     float nominal_deviation = _deviation * _nominal_vac_input;
+    float nominal_hysteresis = _hysteresis * _nominal_vac_input;  
 
-    float nominal_hysteresis = _hysteresis * _nominal_vac_input;       
+    writeStatus(BATTERY_DEAD, _v_bat->reading() < INTERACTIVE_MIN_V_BAT );
+    writeStatus(BATTERY_LOW, _battery_level < INTERACTIVE_BATTERY_LOW );
+
+    // If output is disconnected but the load is present then it may 
+    // point at the defective output relay or the load sensor
+    writeStatus(UNUSUAL_STATE, !readStatus( OUTPUT_CONNECTED ) && ( ac_out > INTERACTIVE_MIN_AC_OUT ) );
+
+    // overload protection
+    writeStatus(OVERLOAD, ac_out > INTERACTIVE_MAX_AC_OUT);
+     
+    // input voltage is far off the regulation limits (X2)
+    writeStatus(UTILITY_FAIL, abs_deviation > 2 * (nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : - 1 )));
+
+    // stop self-test if the battery is low
+    writeStatus(SELF_TEST, _selfTestMode && !readStatus(BATTERY_LOW) );
 
     // wrong output voltage protection after inverter
     if(_batteryMode ) {
-        float deviation = _vac_out->reading() - _nominal_vac_input;
+        float out_deviation = _vac_out->reading() - _nominal_vac_input;
 
-        if( deviation > nominal_deviation || 
-            (-deviation > nominal_deviation && abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ))   
+        if( out_deviation > nominal_deviation || 
+            ( ( -out_deviation > nominal_deviation ) && ( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) ) )   
             writeStatus(UPS_FAULT, true);
     }
 
     _last_time = ticks;
     
-    // input voltage is far off the regulation limits (X2)
-    bool utility_fail = abs_deviation > 2 * (nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : - 1 ));
 
-    if(utility_fail){
-        self_test = false;
+    if(readStatus(UTILITY_FAIL)) {
         _last_fail_time = ticks;
 
         writeStatus(SELF_TEST, false);
         if(!_batteryMode) {
             _last_fault_input_voltage = vac_input;
         }
-        writeStatus(UTILITY_FAIL, true);
     }
 
     if(_shutdownMode) {
-        writeStatus(UTILITY_FAIL, utility_fail);
-        return REGULATE_STATUS_SHUTDOWN;
+        // writeStatus(UTILITY_FAIL, utility_fail);
+        return update_state(REGULATE_STATUS_SHUTDOWN);
     }
     else {
         if( readStatus( SHUTDOWN_ACTIVE ) ) {
-            return REGULATE_STATUS_WAKEUP;
+            return update_state(REGULATE_STATUS_WAKEUP);
         }
     }
 
     // if the state is overload or output voltage is wrong, no regulation, need cold reset.
-    if(readStatus( OVERLOAD ) || readStatus( UPS_FAULT ) ) {
-        return raise_error();
+    // if(readStatus( OVERLOAD ) || readStatus( UPS_FAULT ) ) {
+    if( _status & (( 1U << OVERLOAD ) | ( 1U << UPS_FAULT )) )  {
+        return update_state(REGULATE_STATUS_ERROR);
     }
 
-    if( utility_fail || self_test || (ticks - _last_fail_time < TIMER_ONE_SEC * 2) )  {
+    if( ( _status & (( 1U << UTILITY_FAIL ) | ( 1U << SELF_TEST )) ) || (ticks - _last_fail_time < TIMER_ONE_SEC * 2) )  {
 
         toggleInput(false);
 
         adjustOutput(REGULATE_NONE);
 
         if(readStatus(BATTERY_DEAD)) 
-            return raise_error();
-        else
-            return REGULATE_STATUS_FAIL;
-
+            return update_state(REGULATE_STATUS_ERROR);
+        else 
+            return update_state(REGULATE_STATUS_FAIL);
     }
         
     // input voltage is within the regulation limits 
-    writeStatus(UTILITY_FAIL, false);
 
     // regulate
     if( abs_deviation > nominal_deviation - nominal_hysteresis * (bitRead(_status, REGULATED)? 1 : -1 ) ) {
@@ -131,7 +117,7 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
         adjustOutput(REGULATE_NONE);
     }
 
-    return REGULATE_STATUS_SUCCESS;  
+    return update_state(REGULATE_STATUS_SUCCESS);  
 
 }
 
@@ -156,25 +142,18 @@ void Interactive::toggleError(bool mode) {
 }
 
 void Interactive::adjustOutput(RegulateMode mode) {
-    switch(mode) {
-        case REGULATE_UP:
-            writeStatus(REGULATED, true);
-            digitalWrite(INTERACTIVE_LEFT_RLY_OUT, LOW);
-            digitalWrite(INTERACTIVE_RIGHT_RLY_OUT, HIGH);
-            break;
 
-        case REGULATE_DOWN:
-            writeStatus(REGULATED, true);
-            digitalWrite(INTERACTIVE_LEFT_RLY_OUT, HIGH);
-            digitalWrite(INTERACTIVE_RIGHT_RLY_OUT, LOW);
-            break;
-
-        default:
-            writeStatus( REGULATED, false);
-            digitalWrite(INTERACTIVE_LEFT_RLY_OUT, LOW);
-            digitalWrite(INTERACTIVE_RIGHT_RLY_OUT, LOW);
-            break;
+    if(mode) {
+        writeStatus(REGULATED, true);
+        digitalWrite(INTERACTIVE_LEFT_RLY_OUT, mode == REGULATE_DOWN ? HIGH : LOW);
+        digitalWrite(INTERACTIVE_RIGHT_RLY_OUT, mode == REGULATE_UP ? HIGH : LOW);
     }
+    else {
+        writeStatus(REGULATED, false);
+        digitalWrite(INTERACTIVE_LEFT_RLY_OUT, LOW);
+        digitalWrite(INTERACTIVE_RIGHT_RLY_OUT, LOW);
+    }
+    
 }
 
 void Interactive::writeStatus(uint16_t nbit, bool value) {

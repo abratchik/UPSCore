@@ -7,6 +7,7 @@ void Display::initialize() {
 }
 
 void Display::setup_display() {
+    sendCommand(TM16XX_CMD_DATA_FIXED);
     TM1640::setupDisplay(_active, _brightness);
 }
 
