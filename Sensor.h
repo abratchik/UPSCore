@@ -41,7 +41,7 @@ class Sensor {
         void init();
 
         //  triggered when the sensor is init
-        virtual void on_init(){;};
+        virtual void on_init(){ _active = true; _ready = false; };
 
         virtual void reset();
 
@@ -178,7 +178,7 @@ class RMSSensor : public Sensor {
         // returns the frequency of the signal in Hz
         float get_frequency() { return _avg_period > 0.0? round( (float) TIMER_ONE_SEC / _avg_period ) : 0 ; };
 
-        int get_median() override { return _median; };
+        int get_median() override { return _median_error ; };
 
     protected:
         float transpose_reading(float value) override { return value * _param[SENSOR_PARAM_SCALE]; };
@@ -195,6 +195,8 @@ class RMSSensor : public Sensor {
 
         // median reading
         int _median;
+        int _running_median_error;
+        int _median_error;
 
         // average period computed 
         volatile float _avg_period;

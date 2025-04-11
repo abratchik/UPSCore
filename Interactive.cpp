@@ -52,8 +52,8 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     if(_batteryMode ) {
         float out_deviation = _vac_out->reading() - _nominal_vac_input;
 
-        if( out_deviation > nominal_deviation || 
-            ( ( -out_deviation > nominal_deviation ) && ( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) ) )   
+        if( ( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) &&
+            ( abs(out_deviation) > nominal_deviation ) )   
             writeStatus(UPS_FAULT, true);
     }
     else

@@ -49,10 +49,8 @@ void Sensor::init() {
 }
 
 void Sensor::reset() {
-    _active = true;
     _counter = 0;
     _reading_sum = 0L;
-    _ready = false;
     _avg_reading = 0.0F;
     _sample_counter = _sampling_phase % _sampling_period;
     _last_reading = NOT_DEFINED; // this is to indicate that the sensor has not been sampled yet
@@ -70,6 +68,7 @@ void SimpleSensor::reset() {
 }
 
 void SimpleSensor::on_init() {
+    Sensor::on_init();
     _readings = (int*) calloc(_num_samples, sizeof(int)); 
 }
 
@@ -109,12 +108,15 @@ void RMSSensor::reset() {
     _period_sum = 0;
     _period_start = NOT_DEFINED;
     _running_sum  = 0L;
+    _running_median_error = 0;
+    _median_error = 0;
 
     memset(_sq_deltas, 0x0, _num_periods * sizeof(long));
     memset(_periods, 0x0, _num_periods * sizeof(int));
 }
 
 void RMSSensor::on_init() {
+    Sensor::on_init();
     _sq_deltas = (long*) calloc( _num_periods , sizeof(long)); 
     _periods = (int*) calloc( _num_periods , sizeof(int)); 
 
@@ -139,6 +141,7 @@ void RMSSensor::increment_sum(int reading) {
 
     if(_period_start != NOT_DEFINED) {
         _running_sum += square(delta);
+        _running_median_error += delta;
     }
 
     // reading is crossing the median from negative to positive
@@ -165,7 +168,9 @@ void RMSSensor::increment_sum(int reading) {
             *(_sq_deltas + _period_index) = _running_sum;
             *(_periods + _period_index) = period;
             
+            _median_error = (int) _running_median_error / period;
             _running_sum  = 0L;
+            _running_median_error = 0;
             _period_index++;
             _period_counter++;
 
@@ -189,11 +194,7 @@ void RMSSensor::on_counter_overflow() {
     // if no periods were detected during the _num_samples, there is no signal or
     // the frequency is too low or too high to measure for the given sampling window (_num_samples * _sampling_period )
     if(!_period_counter || _period_counter > (int)(_num_samples >> 1) ) {
-        _reading_sum = 0L;
-        _period_sum = 0;
-        _avg_reading = 0.0F;
-        _avg_period = 0.0F;
-        _reading_sum = 0L;
+        reset();
     }
 
     _period_counter = 0;
