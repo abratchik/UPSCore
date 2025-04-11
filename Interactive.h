@@ -14,7 +14,7 @@
 #define SLEEP_MODE SLEEP_MODE_PWR_DOWN
 
 // number of ticks for inverter to set the output voltage within limits
-const int INVERTER_GRACE_PERIOD = 100;
+const int INVERTER_GRACE_PERIOD = 500;
 
 enum InteractiveStatusFlags {
     BEEPER_IS_ACTIVE,           // Beeper activated

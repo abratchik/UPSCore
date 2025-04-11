@@ -1,7 +1,7 @@
 #include "Sensor.h"
 
 
-Sensor::Sensor(int pin, float offset, float scale, uint8_t num_samples, uint8_t sampling_period, uint8_t sampling_phase) {
+Sensor::Sensor(int pin, float offset, float scale, uint8_t num_samples, uint8_t sampling_period, uint8_t sampling_phase, Print* stream) {
     pinMode(pin, INPUT);
     _pin = pin;
     _num_samples = num_samples;
@@ -10,7 +10,7 @@ Sensor::Sensor(int pin, float offset, float scale, uint8_t num_samples, uint8_t 
     _sampling_period = sampling_period;
     _sampling_phase = sampling_phase;
 
-    _readings = (int*) calloc(_num_samples, sizeof(int));
+    _stream = stream;
 
     init();
 }
@@ -19,9 +19,7 @@ void Sensor::sample() {
 
     if(!_active) return;
 
-    if(++_sample_counter < _sampling_period ) return;
-
-    _sample_counter = 0;
+    if(  ++_sample_counter % _sampling_period  ) return;
 
     int reading = analogRead(_pin);
     
@@ -31,14 +29,14 @@ void Sensor::sample() {
 
     _counter++;
 
-    if(_counter >= _num_samples) {
+    if( _counter >= _num_samples ) {
         _counter = 0;
         on_counter_overflow();
     }
 
 }
 
-void Sensor::increment_sum(int reading) {
+void SimpleSensor::increment_sum(int reading) {
     int old_reading = *( _readings + _counter );
     _reading_sum += reading - _ready * old_reading;
 
@@ -46,103 +44,176 @@ void Sensor::increment_sum(int reading) {
 }
 
 void Sensor::init() {
+    on_init();
+    reset();
+}
+
+void Sensor::reset() {
     _active = true;
     _counter = 0;
     _reading_sum = 0L;
     _ready = false;
     _avg_reading = 0.0F;
     _sample_counter = _sampling_phase % _sampling_period;
-    _last_reading = -1;
-
-    on_init();
+    _last_reading = NOT_DEFINED; // this is to indicate that the sensor has not been sampled yet
 }
 
-void Sensor::compute_reading() {
+SimpleSensor::SimpleSensor(int pin, float offset,  float scale, uint8_t num_samples, uint8_t sampling_period , uint8_t sampling_phase, 
+                           Print* stream) :
+    Sensor(pin, offset, scale, num_samples, sampling_period, sampling_phase, stream) {
+    init();
+} 
+
+void SimpleSensor::reset() {
+    Sensor::reset();
+    memset(_readings, 0x0, _num_samples * sizeof(int));
+}
+
+void SimpleSensor::on_init() {
+    _readings = (int*) calloc(_num_samples, sizeof(int)); 
+}
+
+void SimpleSensor::compute_reading() {
     if(!_ready ) return;
     float total = _reading_sum;
     _avg_reading  = transpose_reading( total / _num_samples  );
 }
 
+void SimpleSensor::dump_readings() {
+    if(!_stream) return;
+    suspend();
+
+    _stream->write('(');
+    for(int i=0; i < _num_samples; i++) {
+        if(i) _stream->write(',');
+        _stream->print(*(_readings+i)); 
+    }
+    _stream->println();
+
+    resume();
+}
+
 RMSSensor::RMSSensor(int pin, float offset,  float scale, 
-                     uint8_t num_samples, uint8_t sampling_period , uint8_t sampling_phase, uint8_t num_frames) :
-    Sensor(pin, offset, scale, num_samples, sampling_period, sampling_phase) {
-    _num_frames = num_frames;    
+                     uint8_t num_samples, uint8_t sampling_period , uint8_t sampling_phase, uint16_t num_periods, Print* stream) :
+    Sensor(pin, offset, scale, num_samples, sampling_period, sampling_phase, stream) {
+    _num_periods = num_periods;    
     init();
 } 
+
+void RMSSensor::reset() {
+    Sensor::reset();
+
+    _avg_period = 0.0F;
+    _period_index = 0;
+    _period_counter = 0;
+    _period_sum = 0;
+    _period_start = NOT_DEFINED;
+    _running_sum  = 0L;
+
+    memset(_sq_deltas, 0x0, _num_periods * sizeof(long));
+    memset(_periods, 0x0, _num_periods * sizeof(int));
+}
+
+void RMSSensor::on_init() {
+    _sq_deltas = (long*) calloc( _num_periods , sizeof(long)); 
+    _periods = (int*) calloc( _num_periods , sizeof(int)); 
+
+    _median = DEFAULT_MEDIAN_READING + _param[SENSOR_PARAM_OFFSET];
+}
 
 void RMSSensor::compute_reading() {
     if(!_ready ) return;
     float total_delta_sq = _reading_sum;
-    _avg_reading = _period_sum? transpose_reading(sqrtf( total_delta_sq / _period_sum)): 0;  
+    int timeframe = _period_sum * _sampling_period;
+    _avg_reading = _period_sum? transpose_reading(sqrtf( total_delta_sq / timeframe )): 0;  
+    _avg_period = (float) timeframe / _num_periods ;
 }
 
+// This method updates the running sum of squared deltas and tracks the period of the signal.
+// It calculates the difference (delta) between the current reading and the median, 
+// and updates the running sum of squared deltas. Additionally, it detects when the signal 
+// crosses the median from negative to positive, marking the start and end of a period.
 void RMSSensor::increment_sum(int reading) {
 
     int delta = reading - _median;
 
-    if(_period_start >= 0) {
+    if(_period_start != NOT_DEFINED) {
         _running_sum += square(delta);
     }
 
     // reading is crossing the median from negative to positive
-    if( delta > 0 && (_last_reading > 0) && (_last_reading <= _median ) ) {
-        uint16_t period_ptr = _frame_counter * _num_samples + _counter;
+    if( delta > 0 && _last_reading != NOT_DEFINED && (_last_reading <= _median ) ) {
+
+        uint16_t period_ptr = _counter;
         
-        if(_period_start >= 0 ) {
-            // end of the period reached
+        // end of the period reached
+        if(_period_start != NOT_DEFINED ) {
+            
+            int period = 0;
 
             if(period_ptr >= _period_start) 
-                _period = period_ptr - _period_start;
+                period = period_ptr - _period_start;
             else
-                _period = _counter + _num_samples * DEFAULT_NUM_FRAMES - _period_start;
+                period = _counter + _num_samples - _period_start;
 
-            _running_sum_total += _running_sum;
-            _running_period_sum += _period;
-        
-            _period_counter++;
+            long old_reading = *(_sq_deltas + _period_index);
+            int old_period = *(_periods + _period_index);
+
+            _reading_sum += _running_sum - old_reading;
+            _period_sum += period - old_period;
+
+            *(_sq_deltas + _period_index) = _running_sum;
+            *(_periods + _period_index) = period;
+            
             _running_sum  = 0L;
+            _period_index++;
+            _period_counter++;
+
+            if(_period_index >= _num_periods) {
+                _period_index = 0;
+                // once the required number of periods received, the sensor is ready
+                _ready = true;
+            }
         }
         
         _period_start = period_ptr;
     }
 
-    *(_readings + _counter) = delta;
-
 }
 
 void RMSSensor::on_counter_overflow() {
-
-
-    if(++_frame_counter < _num_frames) return;
-
+    
+    // sensor is also ready once the end of sampling window is reached
     _ready = true;
 
-    _frame_counter = 0;
-    // _period_start = -1;
-    
-    // if no periods were counted, there is no signal or
-    // the frequency is too low to measure within the sampling window
-    if(!_period_counter) {
-        _period_sum = 0;
-        _avg_period = 0;
-        _avg_reading = 0.0F;
-        _period = 0;
+    // if no periods were detected during the _num_samples, there is no signal or
+    // the frequency is too low or too high to measure for the given sampling window (_num_samples * _sampling_period )
+    if(!_period_counter || _period_counter > (int)(_num_samples >> 1) ) {
         _reading_sum = 0L;
-        _running_sum = 0L;
-        _running_sum_total = 0L;
-        _running_period_sum = 0 ;
-        return; 
+        _period_sum = 0;
+        _avg_reading = 0.0F;
+        _avg_period = 0.0F;
+        _reading_sum = 0L;
     }
-    
-    _period_sum = _running_period_sum;
-    _avg_period = (float)_period_sum * _sampling_period / _period_counter;
-    
-    _running_period_sum = 0;
+
     _period_counter = 0;
 
-    _reading_sum = _running_sum_total;
-    _running_sum_total = 0;
+}
 
+void RMSSensor::dump_readings() {
+    if(!_stream) return;
+    suspend();
+
+    _stream->write('(');
+    for(int i=0; i<_num_periods; i++) {
+        if(i) _stream->write(';');
+        _stream->print(*(_sq_deltas+i)); 
+        _stream->write(',');
+        _stream->print(*(_periods+i)); 
+    }
+    _stream->println();
+
+    resume();
 }
 
 void SensorManager::register_sensor(Sensor* sensor) {

@@ -6,11 +6,12 @@
 
 #define DEFAULT_SCALE           1.00
 #define DEFAULT_OFFSET          0.00
+#define NOT_DEFINED             -1
 
 const uint8_t DEFAULT_NUM_SAMPLES = 20;
 const uint8_t DEFAULT_SAMPLING_PERIOD = 1;
 const uint8_t DEFAULT_SAMPLING_PHASE = 0;
-const uint8_t DEFAULT_NUM_FRAMES = 3;
+const uint8_t DEFAULT_NUM_PERIODS = 3;
 const int DEFAULT_MEDIAN_READING = 512;
 
 enum SensorParam {
@@ -27,10 +28,11 @@ class Sensor {
     public:
 
         Sensor(int pin, float offset = DEFAULT_OFFSET, 
-                float scale = DEFAULT_SCALE, 
-                uint8_t num_samples = DEFAULT_NUM_SAMPLES, 
-                uint8_t sampling_period = DEFAULT_SAMPLING_PERIOD,
-                uint8_t sampling_phase = DEFAULT_SAMPLING_PHASE);
+                        float scale = DEFAULT_SCALE, 
+                        uint8_t num_samples = DEFAULT_NUM_SAMPLES, 
+                        uint8_t sampling_period = DEFAULT_SAMPLING_PERIOD,
+                        uint8_t sampling_phase = DEFAULT_SAMPLING_PHASE,
+                        Print* stream = nullptr);
 
         // Takes measurement and accumulate the value. Multiple measurements will be averaged when reading is called.
         void sample();
@@ -38,20 +40,21 @@ class Sensor {
         // Initialization 
         void init();
 
+        //  triggered when the sensor is init
+        virtual void on_init(){;};
+
+        virtual void reset();
 
         float reading(){ return _avg_reading; };
-        
-        //  triggered when the sensor is init
-        virtual void on_init() { ; };
 
         // triggered on the readings counter overflow
-        virtual void on_counter_overflow() { _ready = true;};
+        virtual void on_counter_overflow(){;};
 
         // accumulate reading in the _reading sum
-        virtual void increment_sum(int reading);
+        virtual void increment_sum(int reading){;};
 
         // Compute the reading of the sensor, converted to measurement units (offset/scale applied).
-        virtual void compute_reading();
+        virtual void compute_reading(){;};
         
         // rounded reading
         long readingR() { return round(reading()); };
@@ -59,15 +62,13 @@ class Sensor {
         // Returns true if necessary number of samples has been taken already
         bool ready() { return _ready; };
 
-        uint8_t get_num_samples() { return _num_samples; };
-
         int get_last_reading() { return _last_reading; };
 
         long get_reading_sum() { return _reading_sum; };
 
         virtual int get_median() { return 0; };
 
-        int* get_readings() { return _readings; };
+        virtual void dump_readings() {;};
 
         virtual void setParam(float value, SensorParam p) { _param[p] = value; compute_reading();};
         float getParam(SensorParam p) { return _param[p]; };
@@ -113,14 +114,39 @@ class Sensor {
         // if true the sample() call is void
         bool _active;
 
+        Print* _stream;
+
+};
+
+class SimpleSensor : public Sensor {
+    public:
+        SimpleSensor(int pin, float offset = DEFAULT_OFFSET, 
+            float scale = DEFAULT_SCALE, 
+            uint8_t num_samples = DEFAULT_NUM_SAMPLES, 
+            uint8_t sampling_period = DEFAULT_SAMPLING_PERIOD,
+            uint8_t sampling_phase = DEFAULT_SAMPLING_PHASE, 
+            Print* stream = nullptr);
+
+        void on_init() override;
+
+        void reset() override;
+
+        void increment_sum(int reading) override;
+
+        void compute_reading() override;
+
+        void on_counter_overflow() override { _ready = true;};
+
+        void dump_readings() override;
+
+    private:
         // pointer to the readings storage
         int *_readings;
-
 };
 
 /**
  * @brief RMS sensor class is for measuring the effective amplitude and the period of the periodic signal. 
- *        Amplitude is measured using the True RMS method. Period is 
+ *        Amplitude is measured using the True RMS method. 
  * 
  */
 class RMSSensor : public Sensor {
@@ -131,27 +157,20 @@ class RMSSensor : public Sensor {
             uint8_t num_samples = DEFAULT_NUM_SAMPLES, 
             uint8_t sampling_period = DEFAULT_SAMPLING_PERIOD,
             uint8_t sampling_phase = DEFAULT_SAMPLING_PHASE,
-            uint8_t num_frames = DEFAULT_NUM_FRAMES
-        ); 
+            uint16_t num_periods = DEFAULT_NUM_PERIODS,
+            Print* stream = nullptr); 
 
         void increment_sum(int reading) override;
 
         void compute_reading() override;
 
-        void on_init() override {
-            _median = DEFAULT_MEDIAN_READING + _param[SENSOR_PARAM_OFFSET];
-            _running_period_sum = 0;
-            _period = 0;
-            _avg_period = 0.0F;
-            _period_counter = 0;
-            _period_sum = 0;
-            _period_start = -1;
-            _running_sum  = 0L;
-            _frame_counter = 0;
-            _running_sum_total = 0;
-        };
+        void reset() override;
+
+        void on_init() override;
 
         void on_counter_overflow() override;
+
+        void dump_readings() override;
 
         // returns avg number of ticks corresponding to the period of the signal
         float get_period() { return _avg_period; };
@@ -179,18 +198,18 @@ class RMSSensor : public Sensor {
 
         // average period computed 
         volatile float _avg_period;
-        
-        // latest detected value of the period in ticks
-        uint16_t _period;
 
         // qty of detected periods 
-        uint16_t _period_counter;
+        int _period_counter;
 
-        // accumulated period values in ticks.
-        uint16_t _period_sum;
+        // pointer at the last detected period
+        int _period_index;
 
-        uint8_t _frame_counter;
-        uint8_t _num_frames;
+        // max number of periods to analyze
+        uint16_t _num_periods;
+
+        // accumulated periods in ticks.
+        int _period_sum;
 
         // keeps the counter value at the start of the period
         int _period_start;
@@ -198,9 +217,8 @@ class RMSSensor : public Sensor {
         // accumulated sum of squares within the period
         long _running_sum;
 
-        long _running_sum_total;
-
-        uint16_t _running_period_sum;
+        long *_sq_deltas;
+        int *_periods;
 
 
 };

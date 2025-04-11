@@ -22,15 +22,15 @@ SimpleTimerManager timer_manager;
 //init sensors
 
 // AC input voltage - 300V max
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, -50.0F, 2.58F, 20, 2 ); 
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, -50.0F, 2.58F, 30, 1, 0, 3, &Serial ); 
 // AC output voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.32F, 20, 2, 1 );   
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.32F, 30, 1, 0, 3, &Serial );   
 // AC output current 
-Sensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20, 5, 2 );  
+SimpleSensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20, 5, 2, &Serial );  
 // Battery voltage
-Sensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, 20, 5 ,3 );    
+SimpleSensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, 20, 5 ,3, &Serial );    
 // Battery current +/- 29.9A
-Sensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, 20, 5, 4 );    
+SimpleSensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, 20, 5, 4, &Serial );    
 
 SensorManager sensor_manager(&settings);
 
@@ -116,9 +116,8 @@ void setup() {
   ADCSRA |= _BV(ADPS2); 
   ADCSRA &= ~_BV(ADPS1);
   ADCSRA &= ~_BV(ADPS0);
-
   sei(); // resume interrupts
-
+  
   pinMode(BUZZ_PIN, OUTPUT);
 
 #ifndef DISPLAY_TYPE_NONE 
@@ -257,7 +256,7 @@ void loop() {
           lineups.toggleInput(false);
           lineups.adjustOutput(REGULATE_NONE);
           lineups.toggleError(false);
-          vac_in.init();
+          vac_in.reset();
 
 
           if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 ) {
@@ -294,7 +293,7 @@ void loop() {
             return;
           }
           else {
-            vac_in.init();
+            vac_in.reset();
           }
 
         }
@@ -411,17 +410,7 @@ void loop() {
         case COMMAND_DUMP_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() ) {
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-            if(sensor->ready()) {
-              sensor->suspend();
-              int* readings = sensor->get_readings();
-              Serial.write('(');
-              for(int i=0; i < sensor->get_num_samples(); i++) {
-                if(i) Serial.write(',');
-                Serial.print(*(readings+i)); 
-              }
-              Serial.println();
-              sensor->resume();
-            }
+            sensor->dump_readings();
           }
           break;
         case COMMAND_TUNE_SENSOR:

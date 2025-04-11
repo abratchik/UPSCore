@@ -56,8 +56,8 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
             ( ( -out_deviation > nominal_deviation ) && ( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) ) )   
             writeStatus(UPS_FAULT, true);
     }
-
-    _last_time = ticks;
+    else
+        _last_time = ticks;
     
 
     if(readStatus(UTILITY_FAIL)) {
@@ -80,7 +80,6 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     }
 
     // if the state is overload or output voltage is wrong, no regulation, need cold reset.
-    // if(readStatus( OVERLOAD ) || readStatus( UPS_FAULT ) ) {
     if( _status & (( 1U << OVERLOAD ) | ( 1U << UPS_FAULT )) )  {
         return update_state(REGULATE_STATUS_ERROR);
     }
