@@ -95,7 +95,7 @@ const PROGMEM uint8_t DISPLAY_NUMBER_FONT[] = {
             _display_mode = DISPLAY_VOLTAGE;
         }; 
 
-        void initialize();
+        void initialize() override;
 
         void toggle_display_mode() { _display_mode = (++_display_mode) % DISPLAY_NUMMODES ;};
         void set_display_mode(uint8_t mode) { _display_mode = mode; };

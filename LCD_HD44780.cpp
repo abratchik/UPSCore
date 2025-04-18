@@ -38,16 +38,16 @@ void Display::on_refresh() {
     uint16_t status = _lineups->getStatus();
 
 #if DISPLAY_SCREEN_HEIGHT > 2 
-    setCursor(3,0); print_number(_vac_in->reading(), 4,1);
-    setCursor(10,0); print_number(_vac_in->get_frequency() , 3,0);
+    setCursor(3,0); print_number(_vac_in->reading(), 3,0);
+    setCursor(8,0); print_number(_vac_in->get_frequency() , 4,1);
     setCursor(16,0);
     if(!bitRead(status, UTILITY_FAIL)) 
         printstr(DISPLAY_STATUS_OK);
     else
         printstr(DISPLAY_STATUS_NOK);
         
-    setCursor(3,1); print_number(_vac_out->reading(), 4,1); 
-    setCursor(10,1); print_number(_vac_out->get_frequency(), 3,0);
+    setCursor(3,1); print_number(_vac_out->reading(), 3,0); 
+    setCursor(8,1); print_number(_vac_out->get_frequency(), 4,1);
     setCursor(16,1);
     if(!bitRead(status, UPS_FAULT)) 
         printstr(DISPLAY_STATUS_OK);

@@ -23,11 +23,12 @@
 #define INTERACTIVE_INVERTER_OUT 9    // inverter manage pin
 #define INTERACTIVE_ERROR_OUT LED_BUILTIN
 
-#define TIMER_ONE_SEC   960           // number of ticks to form 1 second
+#define TIMER_ONE_SEC   1000          // number of ticks to form 1 second
 #define MAX_NUM_TIMERS  5             // number of timers used
 
 #define INTERACTIVE_DEFAULT_INPUT_VOLTAGE 230.0F    // nominal input VAC 
 #define INTERACTIVE_INPUT_VOLTAGE_DEVIATION 0.08F   // max input VAC deviation
+#define INTERACTIVE_MAX_SINE_DEVIATION  150.0F      // max deviation in volts from the ideal sine waveform
 #define INTERACTIVE_INPUT_VOLTAGE_HYSTERESIS 0.02F  // input VAC hysteresis
 #define INTERACTIVE_MAX_AC_OUT 4.0F                 // max output current, Amp
 #define INTERACTIVE_MIN_AC_OUT 0.1F

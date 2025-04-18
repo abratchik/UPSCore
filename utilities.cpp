@@ -167,3 +167,18 @@ float ex_parse_float(char* input_buf, int startpos, int len) {
 
     return result;
 }
+
+float ex_fast_sine(int angle) {
+    int index = angle % 360;
+    float res = 0.0001F;
+    if(index < 90) 
+        res *= (int)pgm_read_word(&(SINEX10000[index])) ;
+    else if(index < 180)
+        res *= (int)pgm_read_word(&(SINEX10000[180 - index])) ;
+    else if(index < 270)
+        res *= - (int)pgm_read_word(&(SINEX10000[index - 180])) ;
+    else
+        res *= - (int)pgm_read_word(&(SINEX10000[360 - index])) ;
+    
+    return res;
+}

@@ -1,16 +1,14 @@
 #include "Sensor.h"
 
 
-Sensor::Sensor(int pin, float offset, float scale, uint8_t num_samples, uint8_t sampling_period, uint8_t sampling_phase, Print* stream) {
+Sensor::Sensor(int pin, float offset, float scale, uint8_t num_samples, uint8_t sampling_period, uint8_t sampling_phase) {
     pinMode(pin, INPUT);
     _pin = pin;
     _num_samples = num_samples;
-    _param[SENSOR_PARAM_OFFSET] = offset;
-    _param[SENSOR_PARAM_SCALE] = scale;
+    setParam(offset, SENSOR_PARAM_OFFSET);
+    setParam(scale, SENSOR_PARAM_SCALE);
     _sampling_period = sampling_period;
     _sampling_phase = sampling_phase;
-
-    _stream = stream;
 
     init();
 }
@@ -56,9 +54,17 @@ void Sensor::reset() {
     _last_reading = NOT_DEFINED; // this is to indicate that the sensor has not been sampled yet
 }
 
-SimpleSensor::SimpleSensor(int pin, float offset,  float scale, uint8_t num_samples, uint8_t sampling_period , uint8_t sampling_phase, 
-                           Print* stream) :
-    Sensor(pin, offset, scale, num_samples, sampling_period, sampling_phase, stream) {
+void Sensor::print() {
+    if(!_stream) return;      
+    ex_printf_to_stream(_stream, "%.5f %.5f %f %i",
+        _param[SENSOR_PARAM_OFFSET], 
+        _param[SENSOR_PARAM_SCALE],
+        _avg_reading, 
+        _last_reading);
+}
+
+SimpleSensor::SimpleSensor(int pin, float offset,  float scale, uint8_t num_samples, uint8_t sampling_period , uint8_t sampling_phase) :
+    Sensor(pin, offset, scale, num_samples, sampling_period, sampling_phase) {
     init();
 } 
 
@@ -78,23 +84,18 @@ void SimpleSensor::compute_reading() {
     _avg_reading  = transpose_reading( total / _num_samples  );
 }
 
-void SimpleSensor::dump_readings() {
+void SimpleSensor::dump() {
     if(!_stream) return;
-    suspend();
 
-    _stream->write('(');
     for(int i=0; i < _num_samples; i++) {
         if(i) _stream->write(',');
         _stream->print(*(_readings+i)); 
     }
-    _stream->println();
-
-    resume();
 }
 
 RMSSensor::RMSSensor(int pin, float offset,  float scale, 
-                     uint8_t num_samples, uint8_t sampling_period , uint8_t sampling_phase, uint16_t num_periods, Print* stream) :
-    Sensor(pin, offset, scale, num_samples, sampling_period, sampling_phase, stream) {
+                     uint8_t num_samples, uint8_t sampling_period , uint8_t sampling_phase, uint16_t num_periods) :
+    Sensor(pin, offset, scale, num_samples, sampling_period, sampling_phase) {
     _num_periods = num_periods;    
     init();
 } 
@@ -103,8 +104,13 @@ void RMSSensor::reset() {
     Sensor::reset();
 
     _avg_period = 0.0F;
+    _avg_frequency = 0.0F;
+    _bad_sine = false;
+    _last_amplitude = 0;
+    _running_max_delta = 0;
     _period_index = 0;
     _period_counter = 0;
+    _period_tick_counter = 0;
     _period_sum = 0;
     _period_start = NOT_DEFINED;
     _running_sum  = 0L;
@@ -113,14 +119,15 @@ void RMSSensor::reset() {
 
     memset(_sq_deltas, 0x0, _num_periods * sizeof(long));
     memset(_periods, 0x0, _num_periods * sizeof(int));
+    // memset(_deltas, 0x0, 20 * sizeof(int) );
 }
 
 void RMSSensor::on_init() {
     Sensor::on_init();
+    // _deltas = (int*) calloc( 20 , sizeof(int));
     _sq_deltas = (long*) calloc( _num_periods , sizeof(long)); 
     _periods = (int*) calloc( _num_periods , sizeof(int)); 
 
-    _median = DEFAULT_MEDIAN_READING + _param[SENSOR_PARAM_OFFSET];
 }
 
 void RMSSensor::compute_reading() {
@@ -129,6 +136,7 @@ void RMSSensor::compute_reading() {
     int timeframe = _period_sum * _sampling_period;
     _avg_reading = _period_sum? transpose_reading(sqrtf( total_delta_sq / timeframe )): 0;  
     _avg_period = (float) timeframe / _num_periods ;
+    _avg_frequency = _avg_period?  (float) TIMER_ONE_SEC / _avg_period  : 0 ;
 }
 
 // This method updates the running sum of squared deltas and tracks the period of the signal.
@@ -138,52 +146,62 @@ void RMSSensor::compute_reading() {
 void RMSSensor::increment_sum(int reading) {
 
     int delta = reading - _median;
+    _running_max_delta = max(_running_max_delta, abs(delta));
 
     if(_period_start != NOT_DEFINED) {
         _running_sum += square(delta);
-        _running_median_error += delta;
+        _period_tick_counter++;
+        if(_calibrate) _running_median_error += delta;
     }
 
-    // reading is crossing the median from negative to positive
-    if( delta > 0 && _last_reading != NOT_DEFINED && (_last_reading <= _median ) ) {
+    // skiping first reading
+    if( _last_reading != NOT_DEFINED ) {
 
-        uint16_t period_ptr = _counter;
-        
-        // end of the period reached
-        if(_period_start != NOT_DEFINED ) {
+        int angle = (int)round( _period_tick_counter * _avg_frequency * SENSOR_GRAD_PER_SEC );
+        _expected_delta =  (float)_last_amplitude * ex_fast_sine( angle );
+        _bad_sine = abs((float) delta - _expected_delta) >  _max_delta_deviation;
+
+        // reading is crossing the median from negative to positive
+        if( delta > 0  &&  _last_reading <= _median ) {
             
-            int period = 0;
+            // end of the period reached
+            if(_period_start != NOT_DEFINED ) {
+                
+                long old_reading = *(_sq_deltas + _period_index);
+                int old_period = *(_periods + _period_index);
 
-            if(period_ptr >= _period_start) 
-                period = period_ptr - _period_start;
-            else
-                period = _counter + _num_samples - _period_start;
+                _reading_sum += _running_sum - old_reading;
+                _period_sum += _period_tick_counter - old_period;
 
-            long old_reading = *(_sq_deltas + _period_index);
-            int old_period = *(_periods + _period_index);
+                *(_sq_deltas + _period_index) = _running_sum;
+                *(_periods + _period_index) = _period_tick_counter;
+                
+                if(_calibrate) {
+                    _median_error = (int) _running_median_error / _period_tick_counter;
+                    _running_median_error = 0;
+                }
 
-            _reading_sum += _running_sum - old_reading;
-            _period_sum += period - old_period;
+                _last_amplitude = _running_max_delta;
+                _running_max_delta = 0;
 
-            *(_sq_deltas + _period_index) = _running_sum;
-            *(_periods + _period_index) = period;
+                _running_sum  = 0L;
+                _period_tick_counter = 0;
             
-            _median_error = (int) _running_median_error / period;
-            _running_sum  = 0L;
-            _running_median_error = 0;
-            _period_index++;
-            _period_counter++;
+                _period_index++;
+                _period_counter++;
 
-            if(_period_index >= _num_periods) {
-                _period_index = 0;
-                // once the required number of periods received, the sensor is ready
-                _ready = true;
+                _bad_sine = false;
+
+                if(_period_index >= _num_periods) {
+                    _period_index = 0;
+                    // once the required number of periods received, the sensor is ready
+                    _ready = true;
+                }
             }
+            
+            _period_start = _counter;
         }
-        
-        _period_start = period_ptr;
     }
-
 }
 
 void RMSSensor::on_counter_overflow() {
@@ -201,26 +219,82 @@ void RMSSensor::on_counter_overflow() {
 
 }
 
-void RMSSensor::dump_readings() {
+void RMSSensor::dump() {
     if(!_stream) return;
-    suspend();
 
-    _stream->write('(');
     for(int i=0; i<_num_periods; i++) {
         if(i) _stream->write(';');
         _stream->print(*(_sq_deltas+i)); 
         _stream->write(',');
         _stream->print(*(_periods+i)); 
     }
+
+    _stream->write(' ');
+    _stream->print(_last_amplitude);
+    _stream->write(' ');
+    _stream->print(_last_reading - _median);
+    _stream->write(' ');
+    _stream->print(_expected_delta);
+    _stream->write(' ');
+    _stream->print(_bad_sine);
+
+}
+
+void RMSSensor::print() {
+
+    if(!_stream ) return;
+    
+    Sensor::print();
+
+    if(_calibrate) {
+        _stream->write(' ');
+        _stream->print(_median_error);
+    }
+
+}
+
+void RMSSensor::setParam(float value, SensorParam p) { 
+
+    switch(p) {
+        case SENSOR_PARAM_OFFSET:
+            _median = SENSOR_MEDIAN_READING + value;
+            break;
+        case SENSOR_PARAM_SCALE:
+            _max_delta_deviation = value? INTERACTIVE_MAX_SINE_DEVIATION / value : 0.0F;
+            break;
+        default:
+            break;
+    }
+
+    Sensor::setParam(value, p); 
+};
+
+void SensorManager::print(uint8_t ptr, SensorPrintParam mode) {
+
+    if(!_stream || ptr >= _num_sensors ) return;
+
+    if(mode) _sensors[ptr]->suspend();
+    
+    _stream->write('(');
+    _stream->print(ptr);
+    _stream->write(' ');
+
+    if(mode)
+        _sensors[ptr]->dump();
+    else
+        _sensors[ptr]->print();
+
     _stream->println();
 
-    resume();
+    if(mode) _sensors[ptr]->resume();
 }
+
 
 void SensorManager::register_sensor(Sensor* sensor) {
     if(_num_sensors >= MAX_NUM_SENSORS) return;
 
     _sensors[_num_sensors] = sensor;
+    _sensors[_num_sensors]->set_output(_stream);
     _num_sensors++;
 
 }

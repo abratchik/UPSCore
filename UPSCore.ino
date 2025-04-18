@@ -22,17 +22,17 @@ SimpleTimerManager timer_manager;
 //init sensors
 
 // AC input voltage - 300V max
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, -50.0F, 2.58F, 30, 1, 0, 3, &Serial ); 
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, -50.0F, 2.58F, 80, 1, 0, 3); 
 // AC output voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.32F, 30, 1, 0, 3, &Serial );   
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.32F, 80, 1, 0, 3);   
 // AC output current 
-SimpleSensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20, 5, 2, &Serial );  
+SimpleSensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20, 5, 2 );  
 // Battery voltage
-SimpleSensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, 20, 5 ,3, &Serial );    
+SimpleSensor v_bat(SENSOR_BAT_V_IN, 0.0F, 0.05298, 20, 5 ,3 );    
 // Battery current +/- 29.9A
-SimpleSensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, 20, 5, 4, &Serial );    
+SimpleSensor c_bat(SENSOR_BAT_C_IN, -37.61F, 0.07362F, 20, 5, 4 );    
 
-SensorManager sensor_manager(&settings);
+SensorManager sensor_manager(&settings, &Serial);
 
 // init the charger on DEFAULT_CHARGER_PWM_OUT pin
 Charger charger(&settings, &c_bat, &v_bat);
@@ -100,11 +100,11 @@ void setup() {
 
   cli(); // stop interrupts
 
-  // Timer 0 976Hz. Used for display refresh, blinker and sensor readings.
+  // Timer 0 1000Hz. Used for display refresh, blinker and sensor readings.
   TCNT0 = 0;
   TCCR0A = _BV(WGM00)|_BV(WGM01);            /* Fast PWM, pins not activated */
   TCCR0B = _BV(WGM02)|_BV(CS01)|_BV(CS00);   /* Fast PWM, Prescaler = x64     */
-  OCR0A = 255;
+  OCR0A = 249;
   TIMSK0 = _BV(OCIE0A);
 
   // Timer 1 used for charging (15.6KHz)
@@ -152,7 +152,7 @@ ISR(TIMER0_COMPA_vect) {
 
 void loop() {
 
-  if(vac_in.ready() && ac_out.ready() && v_bat.ready() ) {
+  if( vac_in.ready() && vac_out.ready() && ac_out.ready() && v_bat.ready() && c_bat.ready() ) {
     
     // calculate sensors
     vac_in.compute_reading();
@@ -161,9 +161,7 @@ void loop() {
     v_bat.compute_reading();
     c_bat.compute_reading();
 
-    // sensor_manager.suspend();
     RegulateStatus result = lineups.regulate(timer_manager.getTicks());
-    // sensor_manager.resume();
 
     switch(result) {
 
@@ -385,15 +383,7 @@ void loop() {
 #endif        
         case COMMAND_READ_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() ) {
-            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-            ex_printf_to_stream(&Serial, "(%i %.5f %.5f %f %i %i %f\r\n",
-                                              serial_protocol.getSensorPtr(),
-                                              sensor->getParam(SENSOR_PARAM_OFFSET), 
-                                              sensor->getParam(SENSOR_PARAM_SCALE),
-                                              sensor->reading(), 
-                                              sensor->get_last_reading(), 
-                                              sensor->get_median(),
-                                              sensor->get_reading_sum());
+            sensor_manager.print(serial_protocol.getSensorPtr());
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.get_num_sensors()) {
             ex_printf_to_stream(&Serial, "#%i %i %f %f %f %f %f %i\r\n",
@@ -409,22 +399,17 @@ void loop() {
           break;
         case COMMAND_DUMP_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() ) {
-            Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
-            sensor->dump_readings();
+            sensor_manager.print(serial_protocol.getSensorPtr(), SENSOR_PRINT_DUMP );
           }
           break;
         case COMMAND_TUNE_SENSOR:
           if( serial_protocol.getSensorPtr() < sensor_manager.get_num_sensors() && 
-              serial_protocol.getSensorParam() < 2 ) {
+              serial_protocol.getSensorParam() < SENSOR_NUMPARAMS ) {
 
             Sensor* sensor = sensor_manager.get(serial_protocol.getSensorPtr());
             sensor->setParam(serial_protocol.getSensorParamValue(), serial_protocol.getSensorParam());
             sensor->compute_reading();
-            ex_printf_to_stream(&Serial, "(%i %.5f %.5f %f\r\n",
-                                        serial_protocol.getSensorPtr(),
-                                        sensor->getParam(SENSOR_PARAM_OFFSET), 
-                                        sensor->getParam(SENSOR_PARAM_SCALE),
-                                        sensor->reading());
+            sensor_manager.print(serial_protocol.getSensorPtr());
 
           }
           else if(serial_protocol.getSensorPtr() == sensor_manager.get_num_sensors()) {

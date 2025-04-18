@@ -27,6 +27,7 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     _battery_level = max(min((_v_bat->reading() - INTERACTIVE_MIN_V_BAT) / INTERACTIVE_V_BAT_DELTA, 1.0F), 0.0F) ;
     float ac_out = _ac_out->reading();
     float vac_input = _vac_in->reading();
+    bool bad_sine = _vac_in->bad_sine();
 
     float abs_deviation =  abs(_nominal_vac_input - vac_input);
     float nominal_deviation = _deviation * _nominal_vac_input;
@@ -43,7 +44,7 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     writeStatus(OVERLOAD, ac_out > INTERACTIVE_MAX_AC_OUT);
      
     // input voltage is far off the regulation limits (X2)
-    writeStatus(UTILITY_FAIL, abs_deviation > 2 * (nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : - 1 )));
+    writeStatus(UTILITY_FAIL, (abs_deviation > 2 * (nominal_deviation - nominal_hysteresis * ( _batteryMode? 1 : - 1 ))) || bad_sine );
 
     // stop self-test if the battery is low
     writeStatus(SELF_TEST, _selfTestMode && !readStatus(BATTERY_LOW) );
@@ -52,9 +53,9 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     if(_batteryMode ) {
         float out_deviation = _vac_out->reading() - _nominal_vac_input;
 
-        if( ( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) &&
-            ( abs(out_deviation) > nominal_deviation ) )   
-            writeStatus(UPS_FAULT, true);
+        // if( ( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) &&
+        //     ( abs(out_deviation) > nominal_deviation ) )   
+        //     writeStatus(UPS_FAULT, true);
     }
     else
         _last_time = ticks;

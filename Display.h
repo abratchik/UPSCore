@@ -36,7 +36,7 @@ class AbstractDisplay {
             _brightness = DISPLAY_DEFAULT_BRIGHTNESS;
         };
 
-        void initialize() {;};
+        virtual void initialize() {;};
 
         void toggle(DisplayToggleMode mode = DISPLAY_TOGGLE ) { 
             _active = ( !mode ? !_active : mode == DISPLAY_ON ) ; 

@@ -2,22 +2,30 @@
 #define Sensor_h
 
 #include  "config.h"
+#include "utilities.h"
 #include "Settings.h"
 
 #define DEFAULT_SCALE           1.00
 #define DEFAULT_OFFSET          0.00
 #define NOT_DEFINED             -1
 
-const uint8_t DEFAULT_NUM_SAMPLES = 20;
-const uint8_t DEFAULT_SAMPLING_PERIOD = 1;
-const uint8_t DEFAULT_SAMPLING_PHASE = 0;
-const uint8_t DEFAULT_NUM_PERIODS = 3;
-const int DEFAULT_MEDIAN_READING = 512;
+const uint8_t SENSOR_NUM_SAMPLES = 20;
+const uint8_t SENSOR_SAMPLING_PERIOD = 1;
+const uint8_t SENSOR_SAMPLING_PHASE = 0;
+const uint8_t SENSOR_NUM_PERIODS = 3;
+const int SENSOR_MEDIAN_READING = 512;
+
+const float SENSOR_GRAD_PER_SEC = (float) 360 / TIMER_ONE_SEC;
 
 enum SensorParam {
     SENSOR_PARAM_SCALE,
     SENSOR_PARAM_OFFSET,
     SENSOR_NUMPARAMS
+};
+
+enum SensorPrintParam {
+    SENSOR_PRINT_PARAM,
+    SENSOR_PRINT_DUMP
 };
 
 /**
@@ -29,10 +37,9 @@ class Sensor {
 
         Sensor(int pin, float offset = DEFAULT_OFFSET, 
                         float scale = DEFAULT_SCALE, 
-                        uint8_t num_samples = DEFAULT_NUM_SAMPLES, 
-                        uint8_t sampling_period = DEFAULT_SAMPLING_PERIOD,
-                        uint8_t sampling_phase = DEFAULT_SAMPLING_PHASE,
-                        Print* stream = nullptr);
+                        uint8_t num_samples = SENSOR_NUM_SAMPLES, 
+                        uint8_t sampling_period = SENSOR_SAMPLING_PERIOD,
+                        uint8_t sampling_phase = SENSOR_SAMPLING_PHASE);
 
         // Takes measurement and accumulate the value. Multiple measurements will be averaged when reading is called.
         void sample();
@@ -41,7 +48,7 @@ class Sensor {
         void init();
 
         //  triggered when the sensor is init
-        virtual void on_init(){ _active = true; _ready = false; };
+        virtual void on_init(){ _active = true; _ready = false; _calibrate = false; };
 
         virtual void reset();
 
@@ -62,13 +69,14 @@ class Sensor {
         // Returns true if necessary number of samples has been taken already
         bool ready() { return _ready; };
 
-        int get_last_reading() { return _last_reading; };
+        virtual void dump() {;};
 
-        long get_reading_sum() { return _reading_sum; };
+        // print sensor parameters
+        virtual void print(); 
 
-        virtual int get_median() { return 0; };
+        virtual void calibrate() { _calibrate = !_calibrate; };
 
-        virtual void dump_readings() {;};
+        void set_output(Print* stream) { _stream = stream; };
 
         virtual void setParam(float value, SensorParam p) { _param[p] = value; compute_reading();};
         float getParam(SensorParam p) { return _param[p]; };
@@ -113,6 +121,9 @@ class Sensor {
         
         // if true the sample() call is void
         bool _active;
+        
+        // if true the sensor is in calibrate mode
+        bool _calibrate;
 
         Print* _stream;
 
@@ -122,10 +133,9 @@ class SimpleSensor : public Sensor {
     public:
         SimpleSensor(int pin, float offset = DEFAULT_OFFSET, 
             float scale = DEFAULT_SCALE, 
-            uint8_t num_samples = DEFAULT_NUM_SAMPLES, 
-            uint8_t sampling_period = DEFAULT_SAMPLING_PERIOD,
-            uint8_t sampling_phase = DEFAULT_SAMPLING_PHASE, 
-            Print* stream = nullptr);
+            uint8_t num_samples = SENSOR_NUM_SAMPLES, 
+            uint8_t sampling_period = SENSOR_SAMPLING_PERIOD,
+            uint8_t sampling_phase = SENSOR_SAMPLING_PHASE);
 
         void on_init() override;
 
@@ -137,7 +147,7 @@ class SimpleSensor : public Sensor {
 
         void on_counter_overflow() override { _ready = true;};
 
-        void dump_readings() override;
+        void dump() override;
 
     private:
         // pointer to the readings storage
@@ -154,11 +164,10 @@ class RMSSensor : public Sensor {
 
         RMSSensor(int pin, float offset = DEFAULT_OFFSET, 
             float scale = DEFAULT_SCALE, 
-            uint8_t num_samples = DEFAULT_NUM_SAMPLES, 
-            uint8_t sampling_period = DEFAULT_SAMPLING_PERIOD,
-            uint8_t sampling_phase = DEFAULT_SAMPLING_PHASE,
-            uint16_t num_periods = DEFAULT_NUM_PERIODS,
-            Print* stream = nullptr); 
+            uint8_t num_samples = SENSOR_NUM_SAMPLES, 
+            uint8_t sampling_period = SENSOR_SAMPLING_PERIOD,
+            uint8_t sampling_phase = SENSOR_SAMPLING_PHASE,
+            uint16_t num_periods = SENSOR_NUM_PERIODS); 
 
         void increment_sum(int reading) override;
 
@@ -170,37 +179,56 @@ class RMSSensor : public Sensor {
 
         void on_counter_overflow() override;
 
-        void dump_readings() override;
+        void dump() override;
+
+        void print() override;
 
         // returns avg number of ticks corresponding to the period of the signal
         float get_period() { return _avg_period; };
 
         // returns the frequency of the signal in Hz
-        float get_frequency() { return _avg_period > 0.0? round( (float) TIMER_ONE_SEC / _avg_period ) : 0 ; };
+        float get_frequency() { return _avg_frequency; };
 
-        int get_median() override { return _median_error ; };
+        int get_median_error() { return _median_error ; };
+
+        bool bad_sine() { bool lbs = _last_bad_sine; _last_bad_sine = _bad_sine; return _bad_sine && lbs; };
 
     protected:
         float transpose_reading(float value) override { return value * _param[SENSOR_PARAM_SCALE]; };
 
-        void setParam(float value, SensorParam p) override { 
-            if(p == SENSOR_PARAM_OFFSET) {
-                _median = DEFAULT_MEDIAN_READING + value;
-            }
-            Sensor::setParam(value, p); 
-        };
+        void setParam(float value, SensorParam p) override;
 
     private:
 
-
         // median reading
         int _median;
-        int _running_median_error;
+
+        // variables needed for calibration
+        int _running_median_error; 
         int _median_error;
 
         // average period computed 
         volatile float _avg_period;
 
+        // average frequency computed
+        volatile float _avg_frequency;
+
+        // if true bad sine detected
+        volatile bool _bad_sine;
+        volatile bool _last_bad_sine;
+        
+        // last observed amplitude of the signal in ADC units
+        int _last_amplitude;
+
+        float _expected_delta;
+
+        int _running_max_delta;
+
+        float _max_delta_deviation;
+        
+        // counter of ticks elapsed since the start of the period
+        int _period_tick_counter;
+        
         // qty of detected periods 
         int _period_counter;
 
@@ -232,8 +260,8 @@ class RMSSensor : public Sensor {
 class SensorManager {
     public:
         
-        SensorManager( Settings * settings , HardwareSerial * dbg = nullptr) {
-            _dbg = dbg;
+        SensorManager( Settings * settings , Print * stream = nullptr) {
+            _stream = stream;
             _active = true;
             _settings = settings;
         };
@@ -244,6 +272,8 @@ class SensorManager {
         void sample();
 
         Sensor* get(uint8_t ptr) { return _sensors[ptr]; };
+
+        void print(uint8_t ptr, SensorPrintParam mode = SENSOR_PRINT_PARAM );
 
         uint8_t get_num_sensors() { return _num_sensors; };
 
@@ -257,7 +287,7 @@ class SensorManager {
         void resume() { _active = true; };
 
     private:
-        HardwareSerial * _dbg;
+        Print * _stream;
 
         Settings * _settings;
 
