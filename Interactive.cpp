@@ -49,13 +49,15 @@ RegulateStatus Interactive::regulate(unsigned long ticks) {
     // stop self-test if the battery is low
     writeStatus(SELF_TEST, _selfTestMode && !readStatus(BATTERY_LOW) );
 
-    // wrong output voltage protection after inverter
     if(_batteryMode ) {
-        float out_deviation = _vac_out->reading() - _nominal_vac_input;
 
-        // if( ( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) &&
-        //     ( abs(out_deviation) > nominal_deviation ) )   
-        //     writeStatus(UPS_FAULT, true);
+        // check output voltage after inverter.   
+        float out_deviation = _vac_out->reading() - _nominal_vac_input;
+        // if output is wrong post grace period, report failure
+        if( abs(ticks - _last_time) > INVERTER_GRACE_PERIOD ) {
+            if( abs(out_deviation) > nominal_deviation )
+                writeStatus(UPS_FAULT, true);
+        }
     }
     else
         _last_time = ticks;

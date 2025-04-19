@@ -171,19 +171,27 @@ void loop() {
           // stop the charger to prevent interference with the inverter
           delayed_charge->stop();
           charger.stop();
-          
-          beeper_timer->start( 8 * TIMER_ONE_SEC, TIMER_ONE_SEC );
           lineups.toggleInverter(true);
+          beeper_timer->start( 8 * TIMER_ONE_SEC, TIMER_ONE_SEC );
         }
+        
         if( !lineups.readStatus(OUTPUT_CONNECTED) ) lineups.toggleOutput(true);
+        
+        if( lineups.isBatteryMode() && bitRead(lineups.getStatus(), BATTERY_LOW)) { 
+           
+            // start beep every second if the battery is low
+            if(beeper_timer->isEnabled() && beeper_timer->getPeriod() != 2 * TIMER_ONE_SEC ) 
+              beeper_timer->start( 2 * TIMER_ONE_SEC, TIMER_ONE_SEC );
 
-        // enable beep every second if the battery is low
-        if(beeper_timer->isEnabled() && 
-           bitRead(lineups.getStatus(), BATTERY_LOW) &&  
-           beeper_timer->getPeriod() != 2 * TIMER_ONE_SEC ) {
+            // if the battery level is critical, shutdown in 10 sec
+            if( !shutdown_timer->isEnabled() && lineups.isBatteryMode() && lineups.getBatteryLevel() < INTERACTIVE_BATTERY_CRITICAL ) {
 
-          beeper_timer->start( 2 * TIMER_ONE_SEC, TIMER_ONE_SEC );
+              // we sleep forever till the AC power is back to norm
+              serial_protocol.setParam( PARAM_RESTORE_MIN, 0);
 
+              shutdown_timer->setOnFinish( shutdown_ups );
+              shutdown_timer->start( 0, (int) ( 10 * TIMER_ONE_SEC ) );
+            }  
         }
         break;
 
@@ -222,15 +230,30 @@ void loop() {
           charger.stop();
 
           beep_on();
+
+          // shutdown in 5 sec
+          if( !shutdown_timer->isEnabled() && lineups.isBatteryMode() ) {
+
+            // we sleep forever till the AC power is back to norm
+            serial_protocol.setParam( PARAM_RESTORE_MIN, 0);
+
+            shutdown_timer->setOnFinish( shutdown_ups );
+            shutdown_timer->start( 0, (int) ( 5 * TIMER_ONE_SEC ) );
+          }  
         }
 
         break;
 
       case REGULATE_STATUS_WAKEUP:
-        serial_protocol.setParam( PARAM_RESTORE_MIN , 0.0F) ;
+        serial_protocol.setParam( PARAM_RESTORE_MIN , 0.0F);
         resume_timeout = 0;
 
         lineups.writeStatus(SHUTDOWN_ACTIVE, false);
+        // if the battery is critically low, block the shutdown for 1 min to let battery to gain charge
+        if(lineups.getBatteryLevel() < INTERACTIVE_BATTERY_CRITICAL) {
+          shutdown_timer->setOnFinish(nullptr);
+          shutdown_timer->start(0, 60 * TIMER_ONE_SEC);
+        }
 
 #ifndef DISPLAY_TYPE_NONE
         display.toggle(DISPLAY_ON);
@@ -255,14 +278,10 @@ void loop() {
           lineups.adjustOutput(REGULATE_NONE);
           lineups.toggleError(false);
           vac_in.reset();
-
+          vac_in.clear_ready();
 
           if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 ) {
-            // shutdown_timer->setOnFinish( wakeup_ups );
-            // shutdown_timer->start( 0, serial_protocol.getParam(PARAM_RESTORE_MIN) * 60 * TIMER_ONE_SEC );
-            // TODO: implement wakeup timer
             resume_timeout = (uint32_t)( serial_protocol.getParam(PARAM_RESTORE_MIN) * 60 );
-            // Serial.println(resume_timeout);
           }
         }
 
@@ -270,11 +289,6 @@ void loop() {
         // cycle as normal, re-take all the sensor readings and fall back here if the shutdown is still active
 
         lineups.sleep();
-
-        // unsigned long ticks = timer_manager.getTicks();
-        // while(timer_manager.getTicks() - ticks < TIMER_ONE_SEC ) {
-        //   wdt_reset();
-        // }
         
         if( serial_protocol.getParam( PARAM_RESTORE_MIN ) > 0.0 ) {
           resume_timeout--;
@@ -289,9 +303,10 @@ void loop() {
           if( !bitRead(lineups.getStatus(), UTILITY_FAIL) ) {
             wakeup_ups();
             return;
-          }
+          } 
           else {
             vac_in.reset();
+            vac_in.clear_ready();
           }
 
         }

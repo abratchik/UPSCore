@@ -69,6 +69,8 @@ class Sensor {
         // Returns true if necessary number of samples has been taken already
         bool ready() { return _ready; };
 
+        void clear_ready() { _ready = false; };
+
         virtual void dump() {;};
 
         // print sensor parameters
