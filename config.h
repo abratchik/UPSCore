@@ -38,8 +38,8 @@
 #define INTERACTIVE_NUM_CELLS  2                    // number of cells in a battery pack (serial connection)
 #define INTERACTIVE_NUM_BATTERY_PACKS  1            // number of battery packs
 #define INTERACTIVE_BATTERY_AH 9.0F                 // battery cell capacity in AH
-#define INTERACTIVE_BATTERY_LOW 0.1F                // battery is low
-#define INTERACTIVE_BATTERY_CRITICAL 0.05F          // battery is critically low, shutdown in 30 sec
+#define INTERACTIVE_BATTERY_LOW 0.2F                // battery is low
+#define INTERACTIVE_BATTERY_CRITICAL 0.1F           // battery is critically low
 #define INTERACTIVE_DEFAULT_FREQ 50.0F
 
 #define SELF_TEST_MIN_BAT_LVL 0.8F                  // minimum required battery charge level for the selftest to run

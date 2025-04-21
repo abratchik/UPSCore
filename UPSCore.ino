@@ -249,10 +249,10 @@ void loop() {
         resume_timeout = 0;
 
         lineups.writeStatus(SHUTDOWN_ACTIVE, false);
-        // if the battery is critically low, block the shutdown for 1 min to let battery to gain charge
+        // if the battery is critically low, block the shutdown for 10 sec to avoid shutdown loop
         if(lineups.getBatteryLevel() < INTERACTIVE_BATTERY_CRITICAL) {
           shutdown_timer->setOnFinish(nullptr);
-          shutdown_timer->start(0, 60 * TIMER_ONE_SEC);
+          shutdown_timer->start(0, 10 * TIMER_ONE_SEC);
         }
 
 #ifndef DISPLAY_TYPE_NONE
@@ -277,6 +277,7 @@ void loop() {
           lineups.toggleInput(false);
           lineups.adjustOutput(REGULATE_NONE);
           lineups.toggleError(false);
+          beep_off();
           vac_in.reset();
           vac_in.clear_ready();
 
@@ -300,7 +301,7 @@ void loop() {
           
         }
         else {
-          if( !bitRead(lineups.getStatus(), UTILITY_FAIL) ) {
+          if( !( bitRead(lineups.getStatus(), UTILITY_FAIL) || bitRead(lineups.getStatus(), UPS_FAULT) ) ) {
             wakeup_ups();
             return;
           } 
