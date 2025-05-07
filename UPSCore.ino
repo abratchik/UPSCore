@@ -22,9 +22,9 @@ SimpleTimerManager timer_manager;
 //init sensors
 
 // AC input voltage - 300V max
-RMSSensor vac_in(SENSOR_INPUT_VAC_IN, -50.0F, 2.58F, 80, 1, 0, 3); 
+RMSSensor vac_in(SENSOR_INPUT_VAC_IN, -73.0F, 2.63F, 80, 1, 0, 3); 
 // AC output voltage - 300V max
-RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.32F, 80, 1, 0, 3);   
+RMSSensor vac_out(SENSOR_OUTPUT_VAC_IN, 0.0F, 2.28F, 80, 1, 0, 3);   
 // AC output current 
 SimpleSensor ac_out(SENSOR_OUTPUT_C_IN, 0.0F, 0.007, 20, 5, 2 );  
 // Battery voltage
